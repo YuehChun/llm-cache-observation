@@ -1,0 +1,10 @@
+Show top 5 customers by total order amount in the last 30 days.
+List the 10 most popular products by total quantity sold.
+What is the average order value per month for the past year?
+Which suppliers have shipped the most orders?
+Find customers who have not placed any order in the last 90 days.
+Show daily revenue trend for the past 14 days.
+What is the total inventory value grouped by category?
+List the top 3 sales reps by total revenue closed.
+Which products have the highest return rate?
+Show the conversion rate from quote to order, monthly.

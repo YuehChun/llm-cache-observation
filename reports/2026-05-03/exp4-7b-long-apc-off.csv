@@ -1,0 +1,11 @@
+label,cycle,idx,question,ttft_s,total_s,out_tokens
+7b-long-apc-off,0,1,Show top 5 customers by total order amount in the last 30 days.,27.9121,37.4077,59
+7b-long-apc-off,0,2,List the 10 most popular products by total quantity sold.,17.5515,33.2154,63
+7b-long-apc-off,0,3,What is the average order value per month for the past year?,41.4028,49.2214,64
+7b-long-apc-off,0,4,Which suppliers have shipped the most orders?,17.9899,26.0568,64
+7b-long-apc-off,0,5,Find customers who have not placed any order in the last 90 days.,16.5971,22.3548,64
+7b-long-apc-off,0,6,Show daily revenue trend for the past 14 days.,16.5279,22.1383,64
+7b-long-apc-off,0,7,What is the total inventory value grouped by category?,16.9328,23.2571,53
+7b-long-apc-off,0,8,List the top 3 sales reps by total revenue closed.,16.2648,22.5593,64
+7b-long-apc-off,0,9,Which products have the highest return rate?,16.0579,22.2781,64
+7b-long-apc-off,0,10,"Show the conversion rate from quote to order, monthly.",16.9288,24.6945,64

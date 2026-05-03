@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<title>LLM KV Cache 觀測實驗 — 架構圖</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #334155;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+    --accent: #60a5fa;
+    --good: #34d399;
+    --warn: #fbbf24;
+    --bad: #f87171;
+    --host: #fef3c7;
+    --host-text: #78350f;
+    --mini: #dbeafe;
+    --mini-text: #1e3a8a;
+    --border: #475569;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+  }
+  header {
+    padding: 32px 48px 24px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  }
+  header h1 {
+    margin: 0 0 6px 0;
+    font-size: 28px;
+    font-weight: 700;
+  }
+  header .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+  }
+  header .meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  header .meta span strong {
+    color: var(--accent);
+  }
+  main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 32px 48px 64px;
+  }
+  section {
+    margin-bottom: 48px;
+  }
+  h2 {
+    font-size: 22px;
+    margin: 0 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--accent);
+    display: inline-block;
+  }
+  h3 {
+    font-size: 17px;
+    color: var(--accent);
+    margin: 24px 0 12px;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+  .mermaid {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    overflow-x: auto;
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    border: 1px solid #334155;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    font-size: 14px;
+  }
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    background: var(--panel-2);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  td code {
+    background: rgba(96, 165, 250, 0.15);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .badge.good { background: rgba(52, 211, 153, 0.2); color: var(--good); }
+  .badge.warn { background: rgba(251, 191, 36, 0.2); color: var(--warn); }
+  .badge.bad  { background: rgba(248, 113, 113, 0.2); color: var(--bad);  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .observation-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--good);
+    border-radius: 8px;
+    padding: 16px 20px;
+  }
+  .observation-card h4 {
+    margin: 0 0 8px;
+    font-size: 15px;
+    color: var(--good);
+  }
+  .observation-card .metric-list {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+  }
+  .observation-card .metric-list li {
+    margin-bottom: 4px;
+  }
+  .observation-card .metric-list code {
+    background: rgba(52, 211, 153, 0.12);
+    color: var(--good);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  .observation-card .desc {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 8px 0 0;
+  }
+  .excluded-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--bad);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .excluded-card h4 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    color: var(--bad);
+  }
+  .excluded-card .url {
+    color: var(--muted);
+    font-size: 12px;
+    word-break: break-all;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .excluded-card .reason {
+    background: rgba(248, 113, 113, 0.08);
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-top: 10px;
+  }
+  .excluded-card .reason strong {
+    color: var(--bad);
+  }
+  .nav {
+    position: sticky;
+    top: 0;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(8px);
+    padding: 12px 48px;
+    border-bottom: 1px solid var(--border);
+    z-index: 10;
+  }
+  .nav a {
+    color: var(--muted);
+    text-decoration: none;
+    margin-right: 20px;
+    font-size: 13px;
+    transition: color 0.2s;
+  }
+  .nav a:hover { color: var(--accent); }
+
+  .flow-step {
+    display: flex;
+    gap: 14px;
+    margin: 10px 0;
+    padding: 10px 14px;
+    background: var(--panel-2);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  .flow-step .num {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .ram-bar {
+    background: var(--panel-2);
+    border-radius: 4px;
+    overflow: hidden;
+    height: 24px;
+    display: flex;
+    margin: 12px 0 6px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .ram-bar > div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    transition: width 0.3s;
+  }
+  .ram-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  footer {
+    text-align: center;
+    padding: 32px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .alert {
+    background: rgba(251, 191, 36, 0.1);
+    border-left: 3px solid var(--warn);
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin: 12px 0;
+  }
+  .alert strong { color: var(--warn); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔬 LLM KV Cache 觀測實驗</h1>
+  <div class="subtitle">以 Wren AI 為真實 workload，於 Apple Silicon 16GB MacBook 上量測 KV cache hit rate、TTFT、prefill 等指標</div>
+  <div class="meta">
+    <span><strong>目標機器：</strong>MacBook Apple Silicon, 16GB unified memory</span>
+    <span><strong>核心模型：</strong>Qwen2.5-1.5B-Instruct (MLX, Q4)</span>
+    <span><strong>更新日期：</strong>2026-05-03</span>
+  </div>
+</header>
+
+<nav class="nav">
+  <a href="#goals">🎯 專案目標</a>
+  <a href="#diagram">📐 架構圖</a>
+  <a href="#observations">👁 觀測點</a>
+  <a href="#excluded">❌ 排除元件</a>
+  <a href="#components">🧩 元件清單</a>
+  <a href="#ram">💾 RAM 預算</a>
+  <a href="#dataflow">🔁 資料流</a>
+</nav>
+
+<main>
+
+<!-- ========================================= -->
+<section id="goals">
+  <h2>🎯 專案目標</h2>
+  <div class="panel">
+    <p>本專案要回答三個核心問題：</p>
+    <ol>
+      <li><strong>基線比較：</strong>啟用 / 關閉 prefix cache 對 TTFT 與吞吐量的影響有多大？</li>
+      <li><strong>真實場景觀察：</strong>Wren AI（Text-to-SQL）這種「同 schema、不同問題」的 workload，cache 命中率隨時間如何變化？</li>
+      <li><strong>K8s 部署研究：</strong>把 Wren AI + observability 放到 minikube 上，實際運作所需的最小可行架構長什麼樣？</li>
+    </ol>
+    <div class="alert">
+      <strong>⚠ 受限於硬體：</strong>原始計畫中的 <code>llm-d</code>、<code>Mooncake</code> 因需要資料中心級 GPU（A100+/MI250/TPU v5e+）或多節點 GPU 叢集，<strong>無法在 Apple Silicon 16GB MacBook 上運行</strong>，已從本架構排除。詳見下方「排除元件」章節。
+    </div>
+  </div>
+</section>
+
+<!-- ========================================= -->
+<section id="diagram">
+  <h2>📐 系統架構圖</h2>
+  <div class="mermaid">
+flowchart TB
+  subgraph host["💻 macOS Host (Apple Silicon, 16GB)"]
+    direction TB
+    subgraph llmsrv["LLM Serving 層 (Metal GPU)"]
+      vllm["🔥 vllm-metal server<br/>:8000<br/>Qwen2.5-1.5B MLX Q4<br/>--enable-prefix-caching<br/>↓ 暴露 /metrics"]
+      omlx["📊 omlx server (對照組)<br/>menu-bar app<br/>同模型、不同引擎"]
+    end
+    subgraph obs["Observability 層 (Docker Compose)"]
+      prom["📈 Prometheus :9090<br/>scrape interval 5s"]
+      graf["📊 Grafana :3001<br/>dashboards"]
+    end
+  end
+
+  subgraph mini["☸️ minikube (8GB / 4 CPU)"]
+    direction TB
+    subgraph wren_ns["Namespace: wren-ai"]
+      ui["🌐 wren-ui :3000"]
+      svc["🤖 wren-ai-service<br/>:8000 /metrics"]
+      eng["⚙️ wren-engine"]
+      ibis["🔌 wren-ibis-server"]
+    end
+    subgraph data_ns["Namespace: data"]
+      pg[("🗄 Postgres demo DB")]
+      qd[("🔍 Qdrant vector DB")]
+    end
+  end
+
+  user["👤 User Browser"] --> ui
+  ui --> svc
+  svc -->|"Text-to-SQL prompts<br/>OpenAI-compatible API"| vllm
+  svc --> qd
+  svc --> eng
+  eng --> ibis
+  ibis --> pg
+
+  prom -.->|"host.docker.internal:8000"| vllm
+  prom -.->|"minikube ip :30090"| svc
+  graf --> prom
+
+  classDef hostStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#78350f
+  classDef miniStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1e3a8a
+  classDef vllmStyle fill:#fde68a,stroke:#92400e,stroke-width:2px,color:#78350f
+  classDef obsStyle fill:#bbf7d0,stroke:#166534,stroke-width:2px,color:#14532d
+  classDef wrenStyle fill:#bfdbfe,stroke:#1e40af,stroke-width:1px,color:#1e3a8a
+  classDef dataStyle fill:#e9d5ff,stroke:#6b21a8,stroke-width:1px,color:#581c87
+
+  class host hostStyle
+  class mini miniStyle
+  class vllm,omlx vllmStyle
+  class prom,graf obsStyle
+  class ui,svc,eng,ibis wrenStyle
+  class pg,qd dataStyle
+  </div>
+  <div class="legend">
+    <div class="legend-item"><span class="legend-swatch" style="background:#fef3c7"></span>macOS Host 層</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#dbeafe"></span>minikube K8s 層</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#fde68a"></span>LLM Serving</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#bbf7d0"></span>Observability</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#bfdbfe"></span>Wren AI 元件</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#e9d5ff"></span>Data Stores</div>
+  </div>
+
+  <h3>🔑 為什麼是混合架構（host + minikube）？</h3>
+  <div class="panel">
+    <ol>
+      <li><strong>vllm-metal 必須在 host：</strong>Metal API 是 Apple GPU 的私有介面，無法穿透 Linux container。所以 LLM serving 不能放進 minikube。</li>
+      <li><strong>Wren AI 與 observability 在 minikube：</strong>純 CPU、跨平台，K8s 化沒問題；同時滿足「研究 K8s 部署」的目標。</li>
+      <li><strong>Prometheus 也放 host（用 Docker Compose）：</strong>因為 minikube 在 macOS docker driver 下，<code>host.minikube.internal</code> 解析到的是 Docker Desktop VM 而非真正的 macOS host。把 Prometheus 放 host，直接用 <code>host.docker.internal:8000</code> scrape vllm-metal 最乾淨。</li>
+      <li><strong>omlx 作為對照組：</strong>用同一個模型在 omlx 上跑，比較 vllm-metal vs omlx 的 cache 行為與 TTFT，附加價值不大但成本很低。</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ========================================= -->
+<section id="observations">
+  <h2>👁 觀測點與目標指標</h2>
+  <p style="color:var(--muted)">Prometheus 從 vllm-metal 的 <code>/metrics</code> endpoint 抓 4 大類 cache 指標 + 延遲指標，全部呈現在 Grafana 上。</p>
+
+  <div class="grid-2">
+    <div class="observation-card">
+      <h4>① 快取命中與查詢（Hit Rate）</h4>
+      <p class="desc">最直接衡量 cache 是否發揮作用。命中率 = hits / queries（時間區間滾動）。</p>
+      <ul class="metric-list">
+        <li><code>vllm:prefix_cache_queries</code> — 系統嘗試查詢前綴快取的總次數</li>
+        <li><code>vllm:prefix_cache_hits</code> — 成功命中前綴快取的總次數</li>
+        <li><strong>PromQL：</strong> <code>sum(rate(prefix_cache_hits[5m])) / sum(rate(prefix_cache_queries[5m]))</code></li>
+      </ul>
+    </div>
+
+    <div class="observation-card">
+      <h4>② KV 區塊駐留與重複利用（Residency）</h4>
+      <p class="desc">透過 histogram 採樣，了解 cache 在記憶體中的生命週期。</p>
+      <ul class="metric-list">
+        <li><code>vllm:kv_block_reuse_gap_seconds</code> — 兩次連續存取的時間差</li>
+        <li><code>vllm:kv_block_lifetime_seconds</code> — 區塊總存活時間（分配 → 驅逐）</li>
+        <li><code>vllm:kv_block_idle_before_evict_seconds</code> — 被驅逐前的閒置時間（揪出 stranded cache）</li>
+      </ul>
+    </div>
+
+    <div class="observation-card">
+      <h4>③ GPU 空間使用率（Capacity）</h4>
+      <p class="desc">Cache 表現與記憶體空間息息相關，逼近 1.0 時 LRU 開始驅逐舊 cache。</p>
+      <ul class="metric-list">
+        <li><code>vllm:gpu_cache_usage_perc</code> — KV cache 區塊使用比例 (0~1)</li>
+        <li><strong>觀察：</strong>當這條線壓到 0.95+ 時，hit rate 通常會下降</li>
+      </ul>
+    </div>
+
+    <div class="observation-card">
+      <h4>④ 延遲與效能驗證（Latency）</h4>
+      <p class="desc">Cache 表現最終會反映在推論延遲上，這是「使用者感受到的好處」。</p>
+      <ul class="metric-list">
+        <li><code>vllm:time_to_first_token_seconds</code> — TTFT，cache hit 時應大幅降低</li>
+        <li><code>vllm:request_prefill_time_seconds</code> — prefill 階段時間</li>
+        <li><code>vllm:generation_tokens_total</code> — 總產出 tokens（換算 throughput）</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>🧪 三組 A/B 實驗設計</h3>
+  <table>
+    <thead>
+      <tr><th width="20%">實驗</th><th width="40%">設計</th><th width="40%">預期結果</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>① Cold vs Warm</strong><br/>(證明 prefix cache 有用)</td>
+        <td>重啟 vllm-metal → 發送長 system prompt → 連續 10 個只改尾段的 request</td>
+        <td>Warm 的 TTFT ↓ 50-90%，<code>prefix_cache_hits</code> ↑</td>
+      </tr>
+      <tr>
+        <td><strong>② APC On vs Off</strong><br/>(量化整體 throughput 提升)</td>
+        <td>同 50 個 prompts，跑 <code>--enable-prefix-caching</code> vs <code>--no-enable-prefix-caching</code> 各一輪</td>
+        <td>APC On 的 throughput ↑ 1.5-3x</td>
+      </tr>
+      <tr>
+        <td><strong>③ Wren AI 真實 workload</strong><br/>(觀察真實 cache 行為)</td>
+        <td>建 demo Postgres + e-commerce schema，連續問 30 個關於同 schema 的問題</td>
+        <td>產出「Wren AI workload 下 cache 行為觀察報告」</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========================================= -->
+<section id="excluded">
+  <h2>❌ 因硬體限制而排除的元件</h2>
+  <p style="color:var(--muted)">原始計畫中以下元件因硬體不足無法使用，已從本架構排除。每個排除都有明確理由與替代方案。</p>
+
+  <div class="excluded-card">
+    <h4>🚫 llm-d &nbsp;<span class="badge bad">硬性無法執行</span></h4>
+    <a class="url" href="https://github.com/llm-d/llm-d">https://github.com/llm-d/llm-d</a>
+    <p>llm-d 是 Kubernetes-native 的 distributed LLM inference platform，整合 vLLM + Inference Gateway，主打 P/D Disaggregation 與 Wide Expert Parallelism。</p>
+    <div class="reason">
+      <strong>排除原因：</strong>llm-d 官方明確要求 <strong>NVIDIA A100+ / AMD MI250 / Google TPU v5e+ / Intel GPU Max</strong> 等資料中心級加速器，並且依賴 GPUDirect RDMA 才能達到設計效能。Apple Silicon Mac 既沒有這些 GPU，也沒有 NVLink/RDMA 拓撲，連最低門檻都達不到。即使硬塞進去，CRD 也會卡在 readiness check 上跑不起來。
+      <br/><br/>
+      <strong>替代方案：</strong>本專案改用 <strong>單一 vllm-metal 實例</strong>跑在 host 上，雖然失去了多節點 disaggregated serving 的研究價值，但 prefix cache、TTFT、KV-block residency 等核心觀測指標都仍可量測。如未來要研究 disaggregated 架構，建議租用雲端 GPU spot instance（GKE/EKS T4 約 $0.5/小時）做 30 分鐘試跑。
+    </div>
+  </div>
+
+  <div class="excluded-card">
+    <h4>🚫 Mooncake (kvcache-ai) &nbsp;<span class="badge bad">單機環境無觀測意義</span></h4>
+    <a class="url" href="https://github.com/kvcache-ai/Mooncake">https://github.com/kvcache-ai/Mooncake</a>
+    <p>Mooncake 是 Moonshot AI 為 Kimi 開發的 serving platform，核心是「KVCache-centric disaggregated architecture」—— 把 prefill 與 decoding 拆到不同 cluster，並把 GPU cluster 中閒置的 CPU/DRAM/SSD 池化成共享 KV cache pool。</p>
+    <div class="reason">
+      <strong>排除原因：</strong>Mooncake 解決的是「我有 32 張 H100 跨節點 KV 互不共用」這種大規模 GPU cluster 的問題。雖然原始碼支援 <code>-DUSE_CUDA=OFF</code> 編 CPU-only，但 ARM64 build 沒被官方驗證，而且<strong>單機 16GB MacBook 沒有「跨節點 KV 池化」這個問題可解</strong>，跑起來也只是退化成本機 cache，毫無觀測意義。
+      <br/><br/>
+      <strong>替代方案：</strong>本機環境的 KV cache 觀測，<strong>vLLM 內建的 Automatic Prefix Caching (APC) 已經足夠</strong>。如果之後想研究分層 cache（GPU → CPU → SSD），改看 <strong>LMCache</strong> 的 KV offloading 功能（規劃中 Phase 3 條件性實驗）。
+    </div>
+  </div>
+
+  <div class="excluded-card">
+    <h4>⚠️ vLLM 主分支 (CUDA) &nbsp;<span class="badge warn">部分排除：CUDA 路徑不可用</span></h4>
+    <a class="url" href="https://github.com/vllm-project/vllm">https://github.com/vllm-project/vllm</a>
+    <p>vLLM 是業界主流的 LLM inference engine，本專案的觀測指標皆以 vLLM 的 metrics 為標準。</p>
+    <div class="reason">
+      <strong>排除原因：</strong>vLLM 主分支的 CUDA 路徑在 Apple Silicon 完全不可用（沒有 NVIDIA GPU）。CPU backend 雖然有 ARM64 (NEON) 支援，但要從 source build、效能遠低於 Metal、且需在 ARM64 容器內編譯，整體不划算。
+      <br/><br/>
+      <strong>替代方案：</strong>改用 <strong><code>vllm-metal</code> plugin</strong>（vllm-project + Docker 於 2026/1 合作釋出），它在 macOS host 上直接用 Metal GPU + MLX backend 跑 vLLM 引擎，保留 OpenAI-compatible API 與 Prometheus metrics 介面。<strong>限制：只能跑在 macOS host，無法進 Linux container/minikube。</strong>
+    </div>
+  </div>
+
+  <div class="excluded-card" style="border-left-color: var(--warn);">
+    <h4 style="color: var(--warn);">⚠️ LMCache for K8s &nbsp;<span class="badge warn">延後到 Phase 3</span></h4>
+    <a class="url" href="https://github.com/LMCache/LMCache">https://github.com/LMCache/LMCache</a> &nbsp;|&nbsp;
+    <a class="url" href="https://lmcache.github.io/helm/" style="display:inline">helm repo</a>
+    <p>LMCache 是 KV cache 分層管理框架，可把 cache 從 GPU 卸載到 CPU/SSD，是本實驗「KV cache 觀測」最有研究價值的元件之一。</p>
+    <div class="reason" style="background: rgba(251, 191, 36, 0.08);">
+      <strong style="color: var(--warn);">延後原因：</strong>LMCache 官方文件明指「Linux NVIDIA GPU platform」，Helm chart 與多數 Docker image 都針對 CUDA。ARM64 image 與純 CPU 路徑在搜尋中未確認。
+      <br/><br/>
+      <strong>處置：</strong>本專案 <strong>Phase 1-2 不導入 LMCache</strong>，先用 vllm-metal 內建 APC 取得基線觀測。Phase 3（選做）再嘗試在 minikube 內以 <code>--platform=linux/amd64</code> emulation 跑 vLLM CPU image + LMCache 做對照實驗，但 emulation 慢 5-10 倍，TTFT 數據沒有絕對意義，主要看 cache 行為。
+    </div>
+  </div>
+</section>
+
+<!-- ========================================= -->
+<section id="components">
+  <h2>🧩 元件清單</h2>
+  <table>
+    <thead>
+      <tr>
+        <th width="18%">元件</th>
+        <th width="13%">所在層</th>
+        <th width="20%">負責的事</th>
+        <th width="12%">port</th>
+        <th width="12%">RAM 預估</th>
+        <th width="25%">備註</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>vllm-metal</strong> <span class="badge good">採用</span></td>
+        <td>macOS Host</td>
+        <td>LLM 推論主引擎；提供 OpenAI-compatible API + /metrics</td>
+        <td><code>:8000</code></td>
+        <td>~4 GB</td>
+        <td>跑 Qwen2.5-1.5B MLX Q4，<code>--enable-prefix-caching</code></td>
+      </tr>
+      <tr>
+        <td><strong>omlx</strong> <span class="badge good">對照組</span></td>
+        <td>macOS Host</td>
+        <td>對照組 inference server（同模型不同引擎）</td>
+        <td>menu-bar</td>
+        <td>共用 host RAM</td>
+        <td>選做，量測時臨時開啟</td>
+      </tr>
+      <tr>
+        <td><strong>Prometheus</strong> <span class="badge good">採用</span></td>
+        <td>macOS Host (Docker)</td>
+        <td>scrape vllm-metal + Wren AI metrics</td>
+        <td><code>:9090</code></td>
+        <td>~500 MB</td>
+        <td>5 秒抓一次，存 7 天</td>
+      </tr>
+      <tr>
+        <td><strong>Grafana</strong> <span class="badge good">採用</span></td>
+        <td>macOS Host (Docker)</td>
+        <td>Dashboard：Hit rate、TTFT、KV usage</td>
+        <td><code>:3001</code></td>
+        <td>~300 MB</td>
+        <td>匯入 vLLM 官方 dashboard 為基底</td>
+      </tr>
+      <tr>
+        <td><strong>wren-ui</strong> <span class="badge good">採用</span></td>
+        <td>minikube</td>
+        <td>使用者介面，Text-to-SQL 互動</td>
+        <td><code>:3000</code></td>
+        <td>~500 MB</td>
+        <td>NodePort 暴露</td>
+      </tr>
+      <tr>
+        <td><strong>wren-ai-service</strong> <span class="badge good">採用</span></td>
+        <td>minikube</td>
+        <td>呼叫 LLM、做 RAG、產 SQL；本實驗的 cache 受惠者</td>
+        <td><code>:8000</code></td>
+        <td>~2 GB</td>
+        <td>透過 LiteLLM 連 host 上的 vllm-metal</td>
+      </tr>
+      <tr>
+        <td><strong>wren-engine</strong> <span class="badge good">採用</span></td>
+        <td>minikube</td>
+        <td>Semantic layer，把 SQL 翻成資料庫方言</td>
+        <td>internal</td>
+        <td>~1 GB</td>
+        <td>JVM heap 819m</td>
+      </tr>
+      <tr>
+        <td><strong>wren-ibis-server</strong> <span class="badge good">採用</span></td>
+        <td>minikube</td>
+        <td>Ibis 框架，連各種資料源</td>
+        <td>internal</td>
+        <td>~500 MB</td>
+        <td></td>
+      </tr>
+      <tr>
+        <td><strong>Postgres</strong> <span class="badge good">採用</span></td>
+        <td>minikube</td>
+        <td>Demo DB（e-commerce schema）</td>
+        <td><code>:5432</code></td>
+        <td>~500 MB</td>
+        <td>可改 SQLite 省 RAM</td>
+      </tr>
+      <tr>
+        <td><strong>Qdrant</strong> <span class="badge good">採用</span></td>
+        <td>minikube</td>
+        <td>Wren AI 的 vector DB</td>
+        <td><code>:6333</code></td>
+        <td>~500 MB</td>
+        <td>Wren AI 預設搭配</td>
+      </tr>
+      <tr style="opacity:0.5">
+        <td><del>llm-d</del> <span class="badge bad">排除</span></td>
+        <td>—</td>
+        <td>distributed LLM serving</td>
+        <td>—</td>
+        <td>—</td>
+        <td>需 A100+ / MI250 / TPU v5e+</td>
+      </tr>
+      <tr style="opacity:0.5">
+        <td><del>Mooncake</del> <span class="badge bad">排除</span></td>
+        <td>—</td>
+        <td>跨節點 KV cache 池</td>
+        <td>—</td>
+        <td>—</td>
+        <td>單機環境無觀測意義</td>
+      </tr>
+      <tr style="opacity:0.5">
+        <td><del>LMCache</del> <span class="badge warn">延後</span></td>
+        <td>—</td>
+        <td>KV cache 分層 (GPU/CPU/SSD)</td>
+        <td>—</td>
+        <td>—</td>
+        <td>Phase 3 用 x86 emulation 條件性實驗</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========================================= -->
+<section id="ram">
+  <h2>💾 RAM 預算（總 16 GB）</h2>
+  <div class="panel">
+    <div class="ram-bar">
+      <div style="width:31.25%; background:#94a3b8;">macOS 5GB</div>
+      <div style="width:25%; background:#fbbf24;">vllm-metal 4GB</div>
+      <div style="width:43.75%; background:#3b82f6;">minikube 7GB (含 Wren AI/Prom/Qdrant)</div>
+    </div>
+    <div class="ram-legend">
+      <span>🔘 macOS 系統 + IDE/Chrome：~5 GB</span>
+      <span>🟡 vllm-metal + Qwen2.5-1.5B Q4：~4 GB</span>
+      <span>🔵 minikube VM (4 CPU/7 GB)：~7 GB</span>
+    </div>
+    <div class="alert" style="margin-top: 16px;">
+      <strong>⚠ 預算吃緊：</strong>合計 16 GB 剛好打平，沒有 headroom。緩解方案：
+      <ul style="margin: 8px 0;">
+        <li>預設用 <strong>Qwen2.5-1.5B</strong>（~1 GB）而非 3B（~2.5 GB）</li>
+        <li>把 Postgres 改成 SQLite（省 ~500 MB）</li>
+        <li>量測時關閉 Chrome、Slack、Notion 等 GUI app</li>
+        <li>如果 Postgres 不可省，把 minikube 加到 8 GB，等同放棄 GUI buffer</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================= -->
+<section id="dataflow">
+  <h2>🔁 資料流（端到端）</h2>
+  <div class="panel">
+    <div class="flow-step"><div class="num">1</div><div>使用者打開瀏覽器 → <code>minikube ip:NodePort</code> 進入 wren-ui</div></div>
+    <div class="flow-step"><div class="num">2</div><div>輸入自然語言問題（例：「上個月 top 10 的客戶是誰？」）</div></div>
+    <div class="flow-step"><div class="num">3</div><div>wren-ui 把 request 送到 wren-ai-service（內含 system prompt + schema description + user question）</div></div>
+    <div class="flow-step"><div class="num">4</div><div>wren-ai-service 透過 LiteLLM 走 OpenAI-compatible API → <code>http://host.minikube.internal:8000/v1/chat/completions</code> → vllm-metal on host</div></div>
+    <div class="flow-step"><div class="num">5</div><div>🔥 <strong>觀測點：</strong>vllm-metal 處理 request 時，prefix cache 對共享的 system prompt + schema 做命中匹配；hit 則略過 prefill，直接 decode → TTFT 大幅下降</div></div>
+    <div class="flow-step"><div class="num">6</div><div>同時 vllm-metal 把 <code>vllm:prefix_cache_hits/_queries/_kv_block_*/_time_to_first_token</code> 等 metric 寫入 <code>/metrics</code></div></div>
+    <div class="flow-step"><div class="num">7</div><div>📈 Prometheus 每 5 秒從 <code>host.docker.internal:8000/metrics</code> 抓一次數據</div></div>
+    <div class="flow-step"><div class="num">8</div><div>📊 Grafana dashboard 即時呈現 hit rate、TTFT p50/p95、KV usage、reuse gap histogram</div></div>
+    <div class="flow-step"><div class="num">9</div><div>vllm-metal 回傳 SQL → wren-ai-service → wren-engine → wren-ibis-server → 真正打 Postgres</div></div>
+    <div class="flow-step"><div class="num">10</div><div>結果回傳到 wren-ui → 使用者看到表格與圖表</div></div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Project: <strong>llm-cache-observation</strong> &nbsp;|&nbsp;
+  Workspace: <code>/Users/birdtasi/Documents/Projects/llm-cache-observation</code> &nbsp;|&nbsp;
+  本架構圖會在每次專案異動時同步更新（規範寫在 CLAUDE.md）
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "label": "7b-long-apc-on-warm",
+  "n": 10,
+  "overall_seconds": 88.685,
+  "ttft_p50": 1.4612,
+  "ttft_p95": 4.0486,
+  "ttft_mean": 2.8486,
+  "out_tokens_total": 621,
+  "tokens_per_sec_avg": 7.0,
+  "metrics_delta": {
+    "vllm:prefix_cache_hits_total": 19840.0,
+    "vllm:prefix_cache_queries_total": 20090.0,
+    "vllm:prompt_tokens_total": 20090.0,
+    "vllm:prompt_tokens_cached_total": 19840.0,
+    "vllm:generation_tokens_total": 629.0
+  },
+  "cache_hit_rate": 0.9876
+}

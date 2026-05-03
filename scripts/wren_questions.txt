@@ -1,0 +1,30 @@
+Show top 5 customers by total order amount in the last 30 days.
+List the 10 most popular products by total quantity sold.
+What is the average order value per month for the past year?
+Which suppliers have shipped the most orders?
+Find customers who have not placed any order in the last 90 days.
+Show daily revenue trend for the past 14 days.
+What is the total inventory value grouped by category?
+List the top 3 sales reps by total revenue closed.
+Which products have the highest return rate?
+Show the conversion rate from quote to order, monthly.
+Find duplicate customer records based on email.
+Calculate gross margin per product category.
+Which regions had the highest YoY growth?
+Show orders that took longer than 5 days to ship.
+List products with stock below reorder threshold.
+What is the customer lifetime value distribution?
+Show the cohort retention by signup month.
+Find sales reps whose performance dropped in Q4 vs Q3.
+Which discount campaigns drove the most incremental revenue?
+List orders that combine more than 3 product categories.
+What is the median order processing time per warehouse?
+Show the top 10 highest-revenue customers and their primary product category.
+Which product pairs are most often bought together?
+What is the cancellation rate per payment method?
+Find orders shipped to a different country than the billing address.
+Show monthly active customers vs new customers.
+Which suppliers had the most quality complaints last quarter?
+Calculate the average days between first order and second order per customer.
+Find products whose price changed more than 3 times in the past year.
+Show revenue by sales channel for the current quarter.

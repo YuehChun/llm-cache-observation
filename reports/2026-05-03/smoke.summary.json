@@ -1,0 +1,18 @@
+{
+  "label": "smoke",
+  "n": 30,
+  "overall_seconds": 709.833,
+  "ttft_p50": 3.7744,
+  "ttft_p95": 22.1695,
+  "ttft_mean": 6.9268,
+  "out_tokens_total": 2202,
+  "tokens_per_sec_avg": 3.1,
+  "metrics_delta": {
+    "vllm:prefix_cache_hits_total": 5904.0,
+    "vllm:prefix_cache_queries_total": 6385.0,
+    "vllm:prompt_tokens_total": 6385.0,
+    "vllm:prompt_tokens_cached_total": 5904.0,
+    "vllm:generation_tokens_total": 2515.0
+  },
+  "cache_hit_rate": 0.9247
+}

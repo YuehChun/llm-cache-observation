@@ -1,0 +1,31 @@
+label,cycle,idx,question,ttft_s,total_s,out_tokens
+smoke,0,1,Show top 5 customers by total order amount in the last 30 days.,22.1695,33.5489,38
+smoke,0,2,List the 10 most popular products by total quantity sold.,3.1941,23.3314,46
+smoke,0,3,What is the average order value per month for the past year?,8.9405,46.6558,70
+smoke,0,4,Which suppliers have shipped the most orders?,1.006,11.6586,55
+smoke,0,5,Find customers who have not placed any order in the last 90 days.,0.5008,7.2333,60
+smoke,0,6,Show daily revenue trend for the past 14 days.,1.1517,19.6063,33
+smoke,0,7,What is the total inventory value grouped by category?,31.5816,58.5456,44
+smoke,0,8,List the top 3 sales reps by total revenue closed.,6.2772,22.1289,67
+smoke,0,9,Which products have the highest return rate?,24.9991,55.579,109
+smoke,0,10,"Show the conversion rate from quote to order, monthly.",9.815,80.7825,110
+smoke,0,11,Find duplicate customer records based on email.,19.9853,28.5119,23
+smoke,0,12,Calculate gross margin per product category.,20.9594,37.061,87
+smoke,0,13,Which regions had the highest YoY growth?,4.6294,61.9697,127
+smoke,0,14,Show orders that took longer than 5 days to ship.,7.192,9.8703,24
+smoke,0,15,List products with stock below reorder threshold.,0.9178,4.9585,43
+smoke,0,16,What is the customer lifetime value distribution?,1.2888,7.1764,56
+smoke,0,17,Show the cohort retention by signup month.,0.7406,9.2189,69
+smoke,0,18,Find sales reps whose performance dropped in Q4 vs Q3.,10.1657,26.7077,124
+smoke,0,19,Which discount campaigns drove the most incremental revenue?,1.5417,16.7194,115
+smoke,0,20,List orders that combine more than 3 product categories.,0.8349,12.3308,118
+smoke,0,21,What is the median order processing time per warehouse?,0.912,11.5127,70
+smoke,0,22,Show the top 10 highest-revenue customers and their primary product category.,4.3546,10.9897,50
+smoke,0,23,Which product pairs are most often bought together?,1.9439,14.4731,90
+smoke,0,24,What is the cancellation rate per payment method?,7.7236,15.9475,61
+smoke,0,25,Find orders shipped to a different country than the billing address.,1.3125,3.5241,20
+smoke,0,26,Show monthly active customers vs new customers.,0.4239,12.2915,89
+smoke,0,27,Which suppliers had the most quality complaints last quarter?,4.6543,13.1653,96
+smoke,0,28,Calculate the average days between first order and second order per customer.,2.1023,18.957,91
+smoke,0,29,Find products whose price changed more than 3 times in the past year.,5.8154,18.744,121
+smoke,0,30,Show revenue by sales channel for the current quarter.,0.669,15.5053,96

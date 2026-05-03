@@ -1,0 +1,18 @@
+{
+  "label": "apc-on-3cycle",
+  "n": 90,
+  "overall_seconds": 762.173,
+  "ttft_p50": 0.6382,
+  "ttft_p95": 5.0459,
+  "ttft_mean": 1.4098,
+  "out_tokens_total": 5518,
+  "tokens_per_sec_avg": 7.24,
+  "metrics_delta": {
+    "vllm:prefix_cache_hits_total": 18720.0,
+    "vllm:prefix_cache_queries_total": 19155.0,
+    "vllm:prompt_tokens_total": 19155.0,
+    "vllm:prompt_tokens_cached_total": 18720.0,
+    "vllm:generation_tokens_total": 7848.0
+  },
+  "cache_hit_rate": 0.9773
+}

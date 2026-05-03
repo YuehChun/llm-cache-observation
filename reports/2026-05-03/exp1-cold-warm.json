@@ -1,0 +1,78 @@
+{
+  "results": [
+    {
+      "idx": 1,
+      "label": "cold",
+      "ttft": 9.876,
+      "total": 23.852,
+      "out_tok": 54
+    },
+    {
+      "idx": 2,
+      "label": "warm",
+      "ttft": 5.443,
+      "total": 13.219,
+      "out_tok": 44
+    },
+    {
+      "idx": 3,
+      "label": "warm",
+      "ttft": 0.969,
+      "total": 6.048,
+      "out_tok": 61
+    },
+    {
+      "idx": 4,
+      "label": "warm",
+      "ttft": 0.332,
+      "total": 4.657,
+      "out_tok": 44
+    },
+    {
+      "idx": 5,
+      "label": "warm",
+      "ttft": 0.703,
+      "total": 6.723,
+      "out_tok": 62
+    },
+    {
+      "idx": 6,
+      "label": "warm",
+      "ttft": 0.911,
+      "total": 5.867,
+      "out_tok": 58
+    },
+    {
+      "idx": 7,
+      "label": "warm",
+      "ttft": 2.039,
+      "total": 4.342,
+      "out_tok": 40
+    },
+    {
+      "idx": 8,
+      "label": "warm",
+      "ttft": 0.826,
+      "total": 12.615,
+      "out_tok": 101
+    },
+    {
+      "idx": 9,
+      "label": "warm",
+      "ttft": 3.168,
+      "total": 22.939,
+      "out_tok": 85
+    },
+    {
+      "idx": 10,
+      "label": "warm",
+      "ttft": 3.73,
+      "total": 32.409,
+      "out_tok": 113
+    }
+  ],
+  "metrics_delta": {
+    "vllm:prefix_cache_hits_total": 1728.0,
+    "vllm:prefix_cache_queries_total": 2140.0
+  }
+}

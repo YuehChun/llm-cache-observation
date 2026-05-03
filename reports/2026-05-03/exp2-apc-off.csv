@@ -1,0 +1,31 @@
+label,cycle,idx,question,ttft_s,total_s,out_tokens
+apc-off,0,1,Show top 5 customers by total order amount in the last 30 days.,8.2757,16.8105,62
+apc-off,0,2,List the 10 most popular products by total quantity sold.,2.4743,5.485,57
+apc-off,0,3,What is the average order value per month for the past year?,0.9844,4.778,64
+apc-off,0,4,Which suppliers have shipped the most orders?,0.8433,3.7473,45
+apc-off,0,5,Find customers who have not placed any order in the last 90 days.,1.3678,4.4369,50
+apc-off,0,6,Show daily revenue trend for the past 14 days.,1.6386,4.8107,63
+apc-off,0,7,What is the total inventory value grouped by category?,1.132,3.3823,49
+apc-off,0,8,List the top 3 sales reps by total revenue closed.,0.7752,4.2113,72
+apc-off,0,9,Which products have the highest return rate?,0.8203,7.5245,92
+apc-off,0,10,"Show the conversion rate from quote to order, monthly.",1.2475,8.8659,112
+apc-off,0,11,Find duplicate customer records based on email.,1.8351,3.6435,28
+apc-off,0,12,Calculate gross margin per product category.,1.6646,6.239,65
+apc-off,0,13,Which regions had the highest YoY growth?,1.6563,13.4433,114
+apc-off,0,14,Show orders that took longer than 5 days to ship.,7.1451,10.5508,9
+apc-off,0,15,List products with stock below reorder threshold.,10.2747,15.7818,15
+apc-off,0,16,What is the customer lifetime value distribution?,2.8903,11.21,26
+apc-off,0,17,Show the cohort retention by signup month.,7.448,23.1704,70
+apc-off,0,18,Find sales reps whose performance dropped in Q4 vs Q3.,2.1645,14.6935,96
+apc-off,0,19,Which discount campaigns drove the most incremental revenue?,2.1761,12.6659,90
+apc-off,0,20,List orders that combine more than 3 product categories.,5.5246,13.038,69
+apc-off,0,21,What is the median order processing time per warehouse?,6.5578,11.087,63
+apc-off,0,22,Show the top 10 highest-revenue customers and their primary product category.,0.9157,8.1835,85
+apc-off,0,23,Which product pairs are most often bought together?,1.6814,8.7227,67
+apc-off,0,24,What is the cancellation rate per payment method?,0.7621,5.7565,67
+apc-off,0,25,Find orders shipped to a different country than the billing address.,1.2789,2.7225,20
+apc-off,0,26,Show monthly active customers vs new customers.,1.1538,9.7776,60
+apc-off,0,27,Which suppliers had the most quality complaints last quarter?,2.182,10.7682,86
+apc-off,0,28,Calculate the average days between first order and second order per customer.,4.3764,14.007,97
+apc-off,0,29,Find products whose price changed more than 3 times in the past year.,2.0508,10.9787,100
+apc-off,0,30,Show revenue by sales channel for the current quarter.,2.9423,18.6306,101

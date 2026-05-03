@@ -1,0 +1,31 @@
+label,cycle,idx,question,ttft_s,total_s,out_tokens
+apc-on-warm,0,1,Show top 5 customers by total order amount in the last 30 days.,9.536,19.3287,68
+apc-on-warm,0,2,List the 10 most popular products by total quantity sold.,2.6384,8.1615,52
+apc-on-warm,0,3,What is the average order value per month for the past year?,0.3867,5.3439,57
+apc-on-warm,0,4,Which suppliers have shipped the most orders?,4.9964,7.8239,53
+apc-on-warm,0,5,Find customers who have not placed any order in the last 90 days.,0.4497,3.8767,69
+apc-on-warm,0,6,Show daily revenue trend for the past 14 days.,0.4423,4.6941,62
+apc-on-warm,0,7,What is the total inventory value grouped by category?,0.3913,3.8179,29
+apc-on-warm,0,8,List the top 3 sales reps by total revenue closed.,0.3542,5.8917,44
+apc-on-warm,0,9,Which products have the highest return rate?,1.4501,9.6601,106
+apc-on-warm,0,10,"Show the conversion rate from quote to order, monthly.",5.3261,20.5696,51
+apc-on-warm,0,11,Find duplicate customer records based on email.,2.7198,4.8272,24
+apc-on-warm,0,12,Calculate gross margin per product category.,1.6938,8.9911,67
+apc-on-warm,0,13,Which regions had the highest YoY growth?,1.4678,17.6116,80
+apc-on-warm,0,14,Show orders that took longer than 5 days to ship.,2.0844,3.807,25
+apc-on-warm,0,15,List products with stock below reorder threshold.,0.4727,3.5359,31
+apc-on-warm,0,16,What is the customer lifetime value distribution?,0.4992,4.33,28
+apc-on-warm,0,17,Show the cohort retention by signup month.,0.3225,5.0326,50
+apc-on-warm,0,18,Find sales reps whose performance dropped in Q4 vs Q3.,0.8504,10.506,110
+apc-on-warm,0,19,Which discount campaigns drove the most incremental revenue?,3.6664,13.8469,93
+apc-on-warm,0,20,List orders that combine more than 3 product categories.,0.2975,11.3737,113
+apc-on-warm,0,21,What is the median order processing time per warehouse?,6.0298,19.0683,74
+apc-on-warm,0,22,Show the top 10 highest-revenue customers and their primary product category.,4.5919,7.8258,47
+apc-on-warm,0,23,Which product pairs are most often bought together?,1.7531,10.1477,82
+apc-on-warm,0,24,What is the cancellation rate per payment method?,0.3658,6.2707,64
+apc-on-warm,0,25,Find orders shipped to a different country than the billing address.,4.6896,5.3776,23
+apc-on-warm,0,26,Show monthly active customers vs new customers.,0.2272,13.1415,72
+apc-on-warm,0,27,Which suppliers had the most quality complaints last quarter?,6.3786,15.2093,81
+apc-on-warm,0,28,Calculate the average days between first order and second order per customer.,0.5887,12.7453,70
+apc-on-warm,0,29,Find products whose price changed more than 3 times in the past year.,2.1536,10.1293,108
+apc-on-warm,0,30,Show revenue by sales channel for the current quarter.,1.3832,10.0303,80

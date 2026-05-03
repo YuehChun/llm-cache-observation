@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: llm-cache-observation
+
+scrape_configs:
+  # vllm-metal on macOS host (Metal GPU). Reachable from container via host-gateway.
+  - job_name: vllm-metal-host
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+        labels:
+          engine: vllm-metal
+          backend: metal
+
+  # NOTE: wren-ai-service (v0.29.0) does NOT expose a /metrics endpoint.
+  # Its OpenAPI only has /, /health, /v1/asks, /v1/charts, /v1/semantics, etc.
+  # Cache observation happens at the LLM layer via the vllm-metal-host job above.
+
+  # Prometheus self-scrape.
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
