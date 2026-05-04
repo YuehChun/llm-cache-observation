@@ -1,21 +1,12 @@
 services:
-  prometheus:
-    image: prom/prometheus:v3.2.1
-    container_name: llm-cache-prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus.yaml:/etc/prometheus/prometheus.yml:ro
-      - prom-data:/prometheus
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=7d
-      - --web.enable-lifecycle
-    restart: unless-stopped
-
+  # Grafana stays on host. Prometheus has been moved into minikube
+  # (see manifests/monitoring/) so it can scrape Kubernetes infrastructure
+  # (cAdvisor, kubelet, pods with prometheus.io/scrape annotation) from
+  # inside the cluster.
+  #
+  # Grafana reaches Prometheus via host.docker.internal:9090, which is
+  # provided by `kubectl port-forward svc/prometheus -n monitoring 9090:9090`
+  # (see scripts/start-prometheus-tunnel.sh).
   grafana:
     image: grafana/grafana:11.6.0
     container_name: llm-cache-grafana
@@ -26,13 +17,12 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - grafana-data:/var/lib/grafana
-    depends_on:
-      - prometheus
     restart: unless-stopped
 
 volumes:
-  prom-data:
   grafana-data:

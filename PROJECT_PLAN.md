@@ -38,26 +38,26 @@
 
 ## 2. 推薦架構
 
-### 2.1 高層架構圖（建議方案：混合架構）
+### 2.1 高層架構圖（**2026-05-04 更新**：Prometheus 進 minikube；Grafana 留 host）
 
 ```mermaid
 flowchart TB
   subgraph host["macOS Host (Apple Silicon, 16GB)"]
     direction TB
-    vllm["vllm-metal server<br/>:8000 OpenAI API + /metrics<br/>Qwen2.5-3B-Instruct (MLX, Q4)"]
-    omlx["(對照組) omlx server<br/>:port Y - 同模型不同引擎"]
-  end
-
-  subgraph dc["Docker Compose on host"]
-    prom[Prometheus :9090]
-    graf[Grafana :3001]
+    vllm["vllm-metal server<br/>:8000 OpenAI API + /metrics<br/>Qwen2.5-1.5B-Instruct (MLX, Q4)"]
+    omlx["omlx 0.3.4 (對照組)<br/>:8001 (0.0.0.0)<br/>同模型不同引擎，無 /metrics<br/>量測時手動啟動"]
+    graf[Grafana :3001<br/>Docker Compose]
+    pf["kubectl port-forward<br/>9090 → svc/prometheus"]
   end
 
   subgraph mini["minikube (8GB / 4 CPU)"]
     direction TB
+    subgraph mon["Namespace: monitoring"]
+      prom["Prometheus :9090<br/>NodePort :30091<br/>+ ServiceAccount RBAC"]
+    end
     subgraph wren["Namespace: wren-ai"]
       ui[wren-ui :3000]
-      svc[wren-ai-service<br/>:8000 /metrics NodePort 30090]
+      svc[wren-ai-service :8000<br/>無 /metrics endpoint]
       eng[wren-engine]
       ibis[wren-ibis-server]
     end
@@ -65,6 +65,7 @@ flowchart TB
       pg[(Postgres demo DB)]
       qd[(Qdrant vector DB)]
     end
+    cad[kubelet + cAdvisor]
   end
 
   ui --> svc
@@ -73,9 +74,11 @@ flowchart TB
   svc --> eng
   eng --> ibis
   ibis --> pg
-  prom -.host.docker.internal:8000.-> vllm
-  prom -.minikube ip :30090.-> svc
-  graf --> prom
+
+  prom -.host.minikube.internal:8000.-> vllm
+  prom -.in-cluster.-> cad
+  pf -.svc/prometheus:9090.-> prom
+  graf -->|host.docker.internal:9090| pf
 
   classDef host fill:#fef3c7,stroke:#92400e
   classDef mini fill:#dbeafe,stroke:#1e40af
@@ -85,12 +88,11 @@ flowchart TB
 
 ### 2.2 為什麼是這個架構
 
-1. **vllm-metal 必須在 host**：Metal API 是 Apple GPU 的私有介面，無法穿透 Linux container，所以 LLM serving 不能放進 minikube。
-2. **Wren AI 與 observability 在 minikube**：這部分純 CPU、跨平台，K8s 化沒問題；同時也滿足你「研究 K8s 部署」的目標。
-3. **跨界 scrape 的網路陷阱**（重要）：minikube 在 macOS + docker driver 下，pod 內的 `host.minikube.internal` 解析到的是 **Docker Desktop VM**，不是真正的 macOS host！要打到 host 上的 vllm-metal 有兩條路：
-   - **(推薦) 把 Prometheus 也放在 macOS host 上**（用 Docker Compose 跑），用 `host.docker.internal:8000` 直連 vllm-metal；要看 Wren AI 的 metric 就走 `minikube ip` 或 NodePort。
-   - 在 Docker Desktop VM 內跑一個 socat / nginx 把 `host.docker.internal:8000` 反向代理出來，minikube pod 才能透過 `host.minikube.internal` 經兩跳到達 host。複雜易錯，不建議。
-4. **omlx 作為對照組**：用同一個模型在 omlx 上跑，比較 vllm-metal vs omlx 的 cache 行為與 TTFT，附加價值不大但成本很低。
+1. **vllm-metal 與 omlx 必須在 host**：兩者都依賴 Metal API（Apple GPU 的私有介面），無法穿透 Linux container，所以 LLM serving 永遠在 host。
+2. **Wren AI 在 minikube**：純 CPU、跨平台，K8s 化沒問題；同時也滿足「研究 K8s 部署」的目標。
+3. **Prometheus 進 minikube（2026-05-04 調整）**：原計畫放 host 是因為舊版 macOS docker driver 下 `host.minikube.internal` 解析錯誤。Docker Desktop v29.4.1 + minikube v1.38.1 已修，pod 內可正確解析為真 host gateway（192.168.65.254）。把 Prometheus 移進 K8s 反而更直觀——可同時 scrape *cluster 內*（cAdvisor、kubelet、pod annotations）與 *host 上的* vllm-metal（透過 `host.minikube.internal:8000`）。
+4. **Grafana 留 host（Docker Compose）**：minikube NodePort 從 macOS host 不可直連（docker driver 限制），與其多一層 ingress / minikube tunnel，不如把 Grafana 留 host。它透過 `kubectl port-forward svc/prometheus -n monitoring 9090:9090` 連到 minikube Prometheus。
+5. **omlx 作為對照組**：用同一個模型在 omlx 上跑（`:8001`），比較 vllm-metal vs omlx 的 TTFT/throughput。omlx 沒有 Prometheus `/metrics`，所以對照組數據用 `scripts/bench.py` 在 client 端採樣。**不放 brew services 自動啟動**——量測時手動 `omlx serve --host 0.0.0.0 --port 8001`。
 
 ### 2.3 RAM 預算（總 16GB）
 
@@ -225,57 +227,61 @@ kubectl -n wren-ai get pods -w
 
 > 註：minikube 在 Mac 用 docker driver 時，host 對 pod 的 hostname 是 `host.minikube.internal`（不是 `host.docker.internal`，這點容易踩雷）。
 
-#### 2.2 Prometheus + Grafana 部署（**改放在 macOS host，用 Docker Compose**）
+#### 2.2 Prometheus 部署在 minikube（**2026-05-04 更新**）
 
-由於 minikube pod 無法直接打到 host 上的 vllm-metal（見 2.2 網路陷阱），把 observability stack 改放 host 上、scrape 兩邊：
+Prometheus 改放 minikube `monitoring` namespace：可同時 scrape *cluster 內*（cAdvisor、kubelet、pod annotations）與 *host 上的* vllm-metal（透過 `host.minikube.internal:8000`）。manifests 已收進 `manifests/monitoring/`：
 
-```yaml
-# ~/Documents/Projects/llm-cache-observation/observability/docker-compose.yaml
-services:
-  prometheus:
-    image: prom/prometheus:v2.55.0
-    ports: ["9090:9090"]
-    volumes:
-      - ./prometheus.yaml:/etc/prometheus/prometheus.yml:ro
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-  grafana:
-    image: grafana/grafana:11.3.0
-    ports: ["3001:3000"]
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    depends_on: [prometheus]
+```
+manifests/monitoring/
+├── 00-namespace.yaml             # ns: monitoring
+├── 05-prometheus-rbac.yaml       # ServiceAccount + ClusterRole + Binding
+├── 10-prometheus-configmap.yaml  # prometheus.yml（含 4 個 scrape jobs）
+└── 20-prometheus-deployment.yaml # Deployment + Service NodePort 30091
 ```
 
-```yaml
-# prometheus.yaml
-global:
-  scrape_interval: 5s
-scrape_configs:
-  - job_name: 'vllm-metal-host'
-    static_configs:
-      - targets: ['host.docker.internal:8000']  # 直接打 host 上的 vllm-metal
-  - job_name: 'wren-ai-via-minikube'
-    static_configs:
-      # 用 `minikube ip` 抓出來的 IP + NodePort，替換下面的 192.168.49.2
-      - targets: ['192.168.49.2:30090']
-```
+scrape jobs：
+- `vllm-metal-host` → `host.minikube.internal:8000/metrics`（vLLM 全部 metrics）
+- `kubernetes-cadvisor` → 經 kubernetes API proxy 抓 node 上 pod 資源
+- `kubernetes-kubelet` → kubelet 自身 metrics
+- `kubernetes-pods` → 任何含 `prometheus.io/scrape=true` annotation 的 pod
+- `prometheus` self-scrape
+
+部署：
 
 ```bash
-cd ~/Documents/Projects/llm-cache-observation/observability
-docker compose up -d
-open http://localhost:9090/targets   # 應看到 vllm-metal-host UP
-open http://localhost:3001           # Grafana
+kubectl apply -f manifests/monitoring/
+kubectl -n monitoring rollout status deploy/prometheus --timeout=120s
 ```
 
-> 替代方案：如果你真的要把 Prometheus 放在 minikube 內（為了「100% K8s 化」的研究目標），可以用 [`socat` sidecar pattern](https://github.com/kubernetes/minikube/issues/16989) 在 Docker Desktop 內反代 `host.docker.internal:8000`，但維護成本明顯較高。建議第一輪先用上面的 Docker Compose 方案。
+#### 2.3 Grafana 留 host（Docker Compose）+ port-forward
 
-#### 2.3 Grafana 連入
+minikube NodePort（`192.168.49.2:30091`）從 macOS host 不可直連（docker driver 限制），所以 Grafana 留 host，透過 `kubectl port-forward` 連 minikube Prometheus：
 
 ```bash
-minikube service -n monitoring kps-grafana --url
-# 用 admin / admin 登入，匯入 vLLM 官方 dashboard
+# Terminal 1：port-forward minikube Prometheus 到 host:9090
+./scripts/start-prometheus-tunnel.sh
+# 等同：kubectl -n monitoring port-forward svc/prometheus 9090:9090
+
+# Terminal 2：啟動 Grafana
+cd observability
+docker compose up -d              # 只剩 grafana 一個 service
+open http://localhost:3001        # admin / admin
 ```
+
+Grafana 的 datasource 已 provision 到 `http://host.docker.internal:9090`（`observability/grafana/provisioning/datasources/prometheus.yaml`），自動指向 port-forward 的 Prometheus。
+
+#### 2.4 omlx 對照組（host）
+
+omlx 也跑在 host（同樣依賴 Metal API），用 :8001 避開 vllm-metal 的 :8000。**不放 brew services 自動啟動**，量測時手動：
+
+```bash
+# 啟動對照組
+omlx serve --host 0.0.0.0 --port 8001 &
+# 量測完關掉
+pkill -f "omlx serve"
+```
+
+omlx 沒有 Prometheus `/metrics`，client 端用 `scripts/bench.py` 直接打 OpenAI-compatible API 採樣 TTFT/throughput。
 
 ---
 

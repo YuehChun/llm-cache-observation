@@ -4,6 +4,8 @@ datasources:
   - name: Prometheus
     type: prometheus
     access: proxy
-    url: http://prometheus:9090
+    # Prometheus runs in minikube; reachable from this host container via
+    # host.docker.internal once `kubectl port-forward svc/prometheus -n monitoring 9090:9090` is running.
+    url: http://host.docker.internal:9090
     isDefault: true
     editable: false

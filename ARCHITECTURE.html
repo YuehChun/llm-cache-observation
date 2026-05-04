@@ -299,7 +299,7 @@
   <div class="meta">
     <span><strong>目標機器：</strong>MacBook Apple Silicon, 16GB unified memory</span>
     <span><strong>核心模型：</strong>Qwen2.5-1.5B-Instruct (MLX, Q4)</span>
-    <span><strong>更新日期：</strong>2026-05-03</span>
+    <span><strong>更新日期：</strong>2026-05-04</span>
   </div>
 </header>
 
@@ -340,19 +340,22 @@ flowchart TB
     direction TB
     subgraph llmsrv["LLM Serving 層 (Metal GPU)"]
       vllm["🔥 vllm-metal server<br/>:8000<br/>Qwen2.5-1.5B MLX Q4<br/>--enable-prefix-caching<br/>↓ 暴露 /metrics"]
-      omlx["📊 omlx server (對照組)<br/>menu-bar app<br/>同模型、不同引擎"]
+      omlx["📊 omlx server (對照組)<br/>:8001 (0.0.0.0)<br/>jundot/omlx 0.3.4<br/>無 /metrics → bench.py 採樣"]
     end
-    subgraph obs["Observability 層 (Docker Compose)"]
-      prom["📈 Prometheus :9090<br/>scrape interval 5s"]
-      graf["📊 Grafana :3001<br/>dashboards"]
+    subgraph obs_host["Observability 層 (host)"]
+      graf["📊 Grafana :3001<br/>(Docker Compose)"]
+      pf["🔌 kubectl port-forward<br/>9090→minikube"]
     end
   end
 
   subgraph mini["☸️ minikube (8GB / 4 CPU)"]
     direction TB
+    subgraph mon_ns["Namespace: monitoring"]
+      prom["📈 Prometheus :9090<br/>NodePort :30091<br/>scrape interval 5s"]
+    end
     subgraph wren_ns["Namespace: wren-ai"]
       ui["🌐 wren-ui :3000"]
-      svc["🤖 wren-ai-service<br/>:8000 /metrics"]
+      svc["🤖 wren-ai-service<br/>:8000 (no /metrics)"]
       eng["⚙️ wren-engine"]
       ibis["🔌 wren-ibis-server"]
     end
@@ -360,6 +363,7 @@ flowchart TB
       pg[("🗄 Postgres demo DB")]
       qd[("🔍 Qdrant vector DB")]
     end
+    kube["⚙️ kubelet + cAdvisor<br/>node-level metrics"]
   end
 
   user["👤 User Browser"] --> ui
@@ -370,9 +374,10 @@ flowchart TB
   eng --> ibis
   ibis --> pg
 
-  prom -.->|"host.docker.internal:8000"| vllm
-  prom -.->|"minikube ip :30090"| svc
-  graf --> prom
+  prom -.->|"host.minikube.internal:8000"| vllm
+  prom -.->|"in-cluster scrape"| kube
+  pf -.->|"svc/prometheus:9090"| prom
+  graf -->|"host.docker.internal:9090"| pf
 
   classDef hostStyle fill:#fef3c7,stroke:#92400e,stroke-width:2px,color:#78350f
   classDef miniStyle fill:#dbeafe,stroke:#1e40af,stroke-width:2px,color:#1e3a8a
@@ -384,7 +389,7 @@ flowchart TB
   class host hostStyle
   class mini miniStyle
   class vllm,omlx vllmStyle
-  class prom,graf obsStyle
+  class prom,graf,pf,kube obsStyle
   class ui,svc,eng,ibis wrenStyle
   class pg,qd dataStyle
   </div>
@@ -400,10 +405,11 @@ flowchart TB
   <h3>🔑 為什麼是混合架構（host + minikube）？</h3>
   <div class="panel">
     <ol>
-      <li><strong>vllm-metal 必須在 host：</strong>Metal API 是 Apple GPU 的私有介面，無法穿透 Linux container。所以 LLM serving 不能放進 minikube。</li>
-      <li><strong>Wren AI 與 observability 在 minikube：</strong>純 CPU、跨平台，K8s 化沒問題；同時滿足「研究 K8s 部署」的目標。</li>
-      <li><strong>Prometheus 也放 host（用 Docker Compose）：</strong>因為 minikube 在 macOS docker driver 下，<code>host.minikube.internal</code> 解析到的是 Docker Desktop VM 而非真正的 macOS host。把 Prometheus 放 host，直接用 <code>host.docker.internal:8000</code> scrape vllm-metal 最乾淨。</li>
-      <li><strong>omlx 作為對照組：</strong>用同一個模型在 omlx 上跑，比較 vllm-metal vs omlx 的 cache 行為與 TTFT，附加價值不大但成本很低。</li>
+      <li><strong>vllm-metal / omlx 必須在 host：</strong>兩者都依賴 Metal API（Apple GPU 的私有介面），無法穿透 Linux container。所以 LLM serving 永遠在 host。</li>
+      <li><strong>Wren AI 在 minikube：</strong>純 CPU、跨平台，K8s 化沒問題；同時滿足「研究 K8s 部署」的目標。</li>
+      <li><strong>Prometheus 進 minikube（2026-05-04 調整）：</strong>原放 host 是因為 macOS docker driver 舊版本 <code>host.minikube.internal</code> 指向 Docker Desktop VM。Docker Desktop v29.4.1 + minikube v1.38.1 已修，pod 內可正確解析為真 host gateway，所以把 Prometheus 移進 K8s 反而更直觀——可同時 scrape <em>cluster 內</em>（cAdvisor、kubelet、pod annotations）與 <em>host 上的</em> vllm-metal。</li>
+      <li><strong>Grafana 留 host：</strong>K8s 內 NodePort 從 macOS 不可直連（docker driver 限制），與其多一層 ingress / tunnel，不如把 Grafana 留在 host 上的 Docker Compose；它經由 <code>kubectl port-forward svc/prometheus -n monitoring 9090:9090</code> 連到 minikube Prometheus。</li>
+      <li><strong>omlx 作為對照組：</strong>用同一個模型不同引擎跑，比較 TTFT/throughput。<strong>不放 brew services 自動啟動</strong>——量測時手動 <code>omlx serve --host 0.0.0.0 --port 8001</code>，避免閒置吃 12.8 GB 記憶體 quota。</li>
     </ol>
   </div>
 </section>
@@ -557,25 +563,33 @@ flowchart TB
         <td><strong>omlx</strong> <span class="badge good">對照組</span></td>
         <td>macOS Host</td>
         <td>對照組 inference server（同模型不同引擎）</td>
-        <td>menu-bar</td>
-        <td>共用 host RAM</td>
-        <td>選做，量測時臨時開啟</td>
+        <td><code>:8001</code></td>
+        <td>~12 GB quota</td>
+        <td>jundot/omlx 0.3.4，量測時手動 <code>omlx serve --host 0.0.0.0 --port 8001</code>；無 Prometheus /metrics</td>
       </tr>
       <tr>
         <td><strong>Prometheus</strong> <span class="badge good">採用</span></td>
-        <td>macOS Host (Docker)</td>
-        <td>scrape vllm-metal + Wren AI metrics</td>
-        <td><code>:9090</code></td>
+        <td>minikube (monitoring ns)</td>
+        <td>scrape vllm-metal + cAdvisor + kubelet + pod annotations</td>
+        <td><code>:9090</code> / NodePort <code>:30091</code></td>
         <td>~500 MB</td>
-        <td>5 秒抓一次，存 7 天</td>
+        <td>5 秒抓一次，存 7 天；RBAC 透過 ServiceAccount</td>
+      </tr>
+      <tr>
+        <td><strong>kubectl port-forward</strong> <span class="badge good">必開</span></td>
+        <td>macOS Host</td>
+        <td>把 minikube Prometheus 暴露到 host:9090</td>
+        <td><code>:9090</code></td>
+        <td>~5 MB</td>
+        <td>Grafana datasource 與 host curl 都依賴；<code>scripts/start-prometheus-tunnel.sh</code></td>
       </tr>
       <tr>
         <td><strong>Grafana</strong> <span class="badge good">採用</span></td>
-        <td>macOS Host (Docker)</td>
-        <td>Dashboard：Hit rate、TTFT、KV usage</td>
+        <td>macOS Host (Docker Compose)</td>
+        <td>Dashboard：Hit rate、TTFT、KV usage、cAdvisor</td>
         <td><code>:3001</code></td>
         <td>~300 MB</td>
-        <td>匯入 vLLM 官方 dashboard 為基底</td>
+        <td>datasource 指向 <code>host.docker.internal:9090</code>（port-forward）</td>
       </tr>
       <tr>
         <td><strong>wren-ui</strong> <span class="badge good">採用</span></td>
@@ -689,8 +703,8 @@ flowchart TB
     <div class="flow-step"><div class="num">4</div><div>wren-ai-service 透過 LiteLLM 走 OpenAI-compatible API → <code>http://host.minikube.internal:8000/v1/chat/completions</code> → vllm-metal on host</div></div>
     <div class="flow-step"><div class="num">5</div><div>🔥 <strong>觀測點：</strong>vllm-metal 處理 request 時，prefix cache 對共享的 system prompt + schema 做命中匹配；hit 則略過 prefill，直接 decode → TTFT 大幅下降</div></div>
     <div class="flow-step"><div class="num">6</div><div>同時 vllm-metal 把 <code>vllm:prefix_cache_hits/_queries/_kv_block_*/_time_to_first_token</code> 等 metric 寫入 <code>/metrics</code></div></div>
-    <div class="flow-step"><div class="num">7</div><div>📈 Prometheus 每 5 秒從 <code>host.docker.internal:8000/metrics</code> 抓一次數據</div></div>
-    <div class="flow-step"><div class="num">8</div><div>📊 Grafana dashboard 即時呈現 hit rate、TTFT p50/p95、KV usage、reuse gap histogram</div></div>
+    <div class="flow-step"><div class="num">7</div><div>📈 Prometheus（minikube）每 5 秒從 <code>host.minikube.internal:8000/metrics</code> 抓 vllm-metal，同時抓 cluster 內的 cAdvisor / kubelet / 任何含 <code>prometheus.io/scrape=true</code> annotation 的 pod</div></div>
+    <div class="flow-step"><div class="num">8</div><div>📊 Grafana（host Docker）透過 <code>host.docker.internal:9090</code>（由 <code>kubectl port-forward</code> 提供）連 minikube Prometheus，dashboard 即時呈現 hit rate、TTFT p50/p95、KV usage、reuse gap histogram、pod CPU/RAM</div></div>
     <div class="flow-step"><div class="num">9</div><div>vllm-metal 回傳 SQL → wren-ai-service → wren-engine → wren-ibis-server → 真正打 Postgres</div></div>
     <div class="flow-step"><div class="num">10</div><div>結果回傳到 wren-ui → 使用者看到表格與圖表</div></div>
   </div>

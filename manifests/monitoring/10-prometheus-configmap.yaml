@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 5s
+      evaluation_interval: 15s
+      external_labels:
+        monitor: llm-cache-observation
+
+    scrape_configs:
+      # ---- LLM serving on macOS host (Metal GPU) ----
+      # vllm-metal: full Prometheus /metrics with prefix-cache, TTFT, prefill metrics.
+      # From minikube pods, host gateway is reachable via host.minikube.internal
+      # (resolves to 192.168.65.254 on Docker Desktop v29.4.1 + minikube v1.38.1).
+      - job_name: vllm-metal-host
+        metrics_path: /metrics
+        static_configs:
+          - targets: ['host.minikube.internal:8000']
+            labels:
+              engine: vllm-metal
+              backend: metal
+
+      # NOTE: omlx (jundot/omlx 0.3.4) does NOT expose Prometheus /metrics.
+      # It exposes /admin/api/stats (JSON) and /v1/* OpenAI APIs only.
+      # Comparison data for omlx is collected by scripts/bench.py at the client side.
+
+      # ---- Kubernetes infrastructure ----
+      # Node-level cAdvisor: container CPU / memory / network per pod.
+      - job_name: kubernetes-cadvisor
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+
+      # Kubelet itself (node-level system metrics).
+      - job_name: kubernetes-kubelet
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: true
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics
+
+      # Pod discovery: any pod annotated with prometheus.io/scrape=true is scraped.
+      # Wren AI v0.29.0 pods do not expose /metrics yet, but this is in place for
+      # any future pod (custom exporter, opencost, kube-state-metrics) that does.
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: pod
+
+      # Prometheus self-scrape.
+      - job_name: prometheus
+        static_configs:
+          - targets: ['localhost:9090']
