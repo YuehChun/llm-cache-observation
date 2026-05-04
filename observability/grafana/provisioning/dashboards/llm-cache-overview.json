@@ -1,0 +1,206 @@
+{
+  "title": "LLM Cache — 5-layer Overview",
+  "uid": "llm-cache-5-layer",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "tags": ["llm", "cache", "wren-ai"],
+  "timezone": "browser",
+  "time": { "from": "now-30m", "to": "now" },
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "row",
+      "title": "Layer 1 — vLLM (LLM engine)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100, "collapsed": false
+    },
+    {
+      "type": "stat", "title": "Prefix cache hit rate (last 5m)",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 1 },
+      "id": 1,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit", "min": 0, "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 0.5 },
+            { "color": "green", "value": 0.85 }
+          ]}
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [{
+        "expr": "sum(rate(vllm:prefix_cache_hits_total[5m])) / clamp_min(sum(rate(vllm:prefix_cache_queries_total[5m])), 1)",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "stat", "title": "TTFT p95 (last 5m)",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 1 }, "id": 2,
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[5m])))",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "stat", "title": "Generation throughput",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 1 }, "id": 3,
+      "fieldConfig": { "defaults": { "unit": "tokens/s", "decimals": 1 } },
+      "targets": [{
+        "expr": "sum(rate(vllm:generation_tokens_total[5m]))",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "stat", "title": "KV cache usage",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 1 }, "id": 4,
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } },
+      "targets": [{ "expr": "vllm:kv_cache_usage_perc", "refId": "A" }]
+    },
+    {
+      "type": "timeseries", "title": "TTFT p50 / p95",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 7 }, "id": 5,
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [
+        { "expr": "histogram_quantile(0.5, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[5m])))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(vllm:time_to_first_token_seconds_bucket[5m])))", "legendFormat": "p95", "refId": "B" }
+      ]
+    },
+    {
+      "type": "timeseries", "title": "Prefix cache hit rate (rolling)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 7 }, "id": 6,
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1 } },
+      "targets": [{
+        "expr": "sum(rate(vllm:prefix_cache_hits_total[5m])) / clamp_min(sum(rate(vllm:prefix_cache_queries_total[5m])), 1)",
+        "legendFormat": "hit rate",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "type": "row",
+      "title": "Layer 2 — wren-ai-service (sidecar proxy)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 15 },
+      "id": 200, "collapsed": false
+    },
+    {
+      "type": "timeseries", "title": "wren-ai requests / sec by route",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }, "id": 7,
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "targets": [{
+        "expr": "sum by (route) (rate(wren_ai_requests_total[5m]))",
+        "legendFormat": "{{route}}",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "timeseries", "title": "wren-ai request duration p95 by route",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 }, "id": 8,
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum by (le, route) (rate(wren_ai_request_duration_seconds_bucket[5m])))",
+        "legendFormat": "{{route}}",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "stat", "title": "wren-ai upstream errors / 5m",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 24 }, "id": 9,
+      "targets": [{ "expr": "sum(increase(wren_ai_upstream_errors_total[5m]))", "refId": "A" }]
+    },
+    {
+      "type": "stat", "title": "wren-ai inflight",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 24 }, "id": 10,
+      "targets": [{ "expr": "wren_ai_inflight_requests", "refId": "A" }]
+    },
+    {
+      "type": "stat", "title": "wren-ai non-2xx ratio (5m)",
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 24 }, "id": 11,
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "targets": [{
+        "expr": "sum(rate(wren_ai_requests_total{status!~\"2..\"}[5m])) / clamp_min(sum(rate(wren_ai_requests_total[5m])), 0.001)",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "type": "row",
+      "title": "Layer 3 — Qdrant (vector DB)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 },
+      "id": 300, "collapsed": false
+    },
+    {
+      "type": "stat", "title": "Qdrant collections",
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 30 }, "id": 12,
+      "targets": [{ "expr": "collections_total", "refId": "A" }]
+    },
+    {
+      "type": "stat", "title": "Qdrant vectors total",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 30 }, "id": 13,
+      "targets": [{ "expr": "collections_vector_total", "refId": "A" }]
+    },
+    {
+      "type": "timeseries", "title": "Qdrant REST requests / sec by endpoint",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 30 }, "id": 14,
+      "fieldConfig": { "defaults": { "unit": "reqps" } },
+      "targets": [{
+        "expr": "sum by (endpoint) (rate(rest_responses_total[5m]))",
+        "legendFormat": "{{endpoint}}",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "type": "row",
+      "title": "Layer 4 — Container resources (cAdvisor)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 38 },
+      "id": 400, "collapsed": false
+    },
+    {
+      "type": "timeseries", "title": "CPU usage by pod (wren-ai ns)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 39 }, "id": 15,
+      "fieldConfig": { "defaults": { "unit": "percentunit" } },
+      "targets": [{
+        "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"wren-ai\",pod!=\"\",container!=\"\"}[5m]))",
+        "legendFormat": "{{pod}}",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "timeseries", "title": "Memory RSS by pod (wren-ai ns)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 39 }, "id": 16,
+      "fieldConfig": { "defaults": { "unit": "bytes" } },
+      "targets": [{
+        "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"wren-ai\",pod!=\"\",container!=\"\"})",
+        "legendFormat": "{{pod}}",
+        "refId": "A"
+      }]
+    },
+
+    {
+      "type": "row",
+      "title": "Layer 5 — Kubernetes state (kube-state-metrics)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 47 },
+      "id": 500, "collapsed": false
+    },
+    {
+      "type": "stat", "title": "Pod phases (whole cluster)",
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 48 }, "id": 17,
+      "targets": [{
+        "expr": "sum by (phase) (kube_pod_status_phase)",
+        "legendFormat": "{{phase}}",
+        "refId": "A"
+      }]
+    },
+    {
+      "type": "table", "title": "Pod restarts (top 10)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 48 }, "id": 18,
+      "targets": [{
+        "expr": "topk(10, sum by (namespace, pod, container) (kube_pod_container_status_restarts_total))",
+        "format": "table", "instant": true, "refId": "A"
+      }]
+    }
+  ]
+}
