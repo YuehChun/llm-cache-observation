@@ -46,6 +46,13 @@
   - **Grafana 留 host**：minikube NodePort 從 macOS host 不可直連（docker driver 限制），所以 Grafana 用 docker-compose 留 host，datasource 改指 `host.docker.internal:9090`，由 `kubectl port-forward svc/prometheus -n monitoring 9090:9090` 提供。對應腳本 `scripts/start-prometheus-tunnel.sh`
   - **omlx 對照組**：`brew install` jundot/omlx tap，最新 0.3.8 / 0.3.5+ 都鎖定一個已從 dflash-mlx repo 消失的 commit `814c4a1`，所以 fall back 到 v0.3.4（最後一個沒 dflash-mlx 依賴的版本），手動修 formula 把 tokenizers 從 `--no-binary` 移除避開 macOS 15+ PyO3 linker 錯
   - **omlx 用法**：手動 `omlx serve --host 0.0.0.0 --port 8001`（不用 brew services 自動啟動，量測時才開；避免閒置吃 12.8 GB 記憶體 quota 與 Metal GPU 算力）。**沒有 Prometheus `/metrics`**，對照組數據走 `scripts/bench.py` 在 client 端採樣
+- [x] **2026-05-04 Path C 調研**：在本機跑 LMCache / KV 分層 cache 的可行性（已完成）
+  - **vllm-metal**：❌ Metal worker 不支援 vLLM `KVConnector` framework（`NotImplementedError: get_kv_connector_handshake_metadata`）。`SimpleCPUOffloadConnector` / `LMCacheConnectorV1` 全不能用
+  - **omlx**：⚠️→✅ 0.3.4 + Homebrew 安裝的 mlx-lm 0.31.2 **完全壞**（任何非平凡 prompt 都撞 `mx.synchronize(generation_stream): There is no Stream(gpu, 0) in current thread`，連基本推論都失效）。**手動把 venv 內 mlx-lm 升到 0.31.3 後修好**——0.31.2 是個 mlx-lm regression
+  - **omlx 有 LMCache-equivalent**：`--paged-ssd-cache-dir` (disk-backed prefix cache, default 100 GB) + `--hot-cache-max-size` (in-memory hot cache) + Metal GPU 三層分層。完整鏈路 PagedSSDCacheManager → PagedCacheManager → BlockAwarePrefixCache
+  - **驗證**：cold 2.82s → warm 1.11s（−61%），無 stream 錯誤；短 prompt 都進 hot cache 沒 spill SSD（預期行為）
+  - **修法**：`rm -rf $(brew --prefix omlx)/libexec/lib/python3.11/site-packages/mlx_lm $(brew --prefix omlx)/libexec/lib/python3.11/site-packages/mlx_lm-0.31.2.dist-info && $(brew --prefix omlx)/libexec/bin/pip install --no-deps mlx-lm==0.31.3`
+  - **意義**：原本 §4.4 規劃用 minikube + x86 emulation 跑 LMCache（path A）的 plan B 不需了——omlx 在 host 上就有 native Metal 三層 cache，可作為 LMCache-equivalent 的 Apple Silicon 對照組
 - [x] **W3-W4**：A/B 實驗 + 報告完成 (2026-05-03)
   - **Exp 1 Cold/Warm**：cold TTFT 9.88s, warm best 0.33s, **speedup 29.7x**, hit rate 80.7%
   - **Exp 2 APC On vs Off (公平 warm 對照)**：TTFT mean 改善 21% (2.87s→2.27s)、p95 改善 19%。**整體 throughput 只改善 2%**——1.5B 短 generation 是 generation-bound，不是 prefill-bound
@@ -118,14 +125,33 @@
 - 原因：CUDA 路徑在 Apple Silicon 完全不可用；CPU backend 雖支援 ARM64 (NEON)，但需 source build、效能遠低於 Metal。
 - 替代：**`vllm-metal` plugin**（vllm-project + Docker 2026/1 釋出）。限制：只能跑在 macOS host，無法進 Linux container/minikube。
 
-### 4.4 ⏳ 延後：`LMCache` 到 Phase 3 條件性實驗
+### 4.4 ⏳ 延後但找到替代：`LMCache` (LMCache/LMCache)
 - Repo：https://github.com/LMCache/LMCache | Helm: https://lmcache.github.io/helm/
 - 原因：官方文件指明「Linux NVIDIA GPU platform」，ARM64 / 純 CPU 路徑未確認。
-- 處置：Phase 1-2 不導入。Phase 3 嘗試在 minikube 內 `--platform=linux/amd64` emulation 跑 vLLM CPU image + LMCache 做對照，但 emulation 慢 5-10x，TTFT 數據沒有絕對意義。
+- **2026-05-04 Path C 調研結論**：
+  - 嘗試 vLLM 內建的 `SimpleCPUOffloadConnector` / `LMCacheConnectorV1`（在 vllm-metal 0.20.0+cpu 已預裝），但 **vllm-metal 的 Metal worker 不支援 vLLM `KVConnector` framework**（`NotImplementedError: get_kv_connector_handshake_metadata`）→ 走 vllm-metal 不通
+  - **改路徑：用 omlx 自家的 paged SSD cache + hot cache + Metal GPU 三層分層**（見 §4.5），這就是 Apple Silicon 上的 LMCache-equivalent，且 native Metal、無 emulation
+- 處置：**LMCache 本身不導入**；分層 cache 觀測改透過 omlx 完成。原計畫的 Phase 3 minikube + x86 emulation + LMCache **取消**
 
-### 4.5 ✅ 保留但角色調整：`omlx`
+### 4.5 ✅ 保留並升格：`omlx` 為 Apple Silicon 上的 LMCache 等效對照
 - Repo：https://github.com/jundot/omlx
-- 角色：作為對照組（同模型不同引擎），**不放進 K8s**（它本身就是 macOS menu-bar app）。
+- 角色：（1）對照組（同模型 vllm-metal vs omlx 比 TTFT/throughput）；（2）**Apple Silicon 上的 KV 分層 cache 載體**（取代 LMCache）。**不放進 K8s**（依賴 Metal API）
+- **內建分層 cache**：
+  - Metal GPU（執行層 KV cache）
+  - **hot cache**（in-memory，`--hot-cache-max-size`，default 0 disabled）
+  - **paged SSD cache**（disk-backed prefix cache，`--paged-ssd-cache-dir`，default 100 GB）
+  - Block size 256 tokens，BlockAwarePrefixCache 串連
+- 啟動範例：
+  ```bash
+  omlx serve --host 0.0.0.0 --port 8001 \
+    --model-dir ~/.omlx/models \
+    --paged-ssd-cache-dir ~/.omlx/paged-ssd-cache \
+    --paged-ssd-cache-max-size 5GB \
+    --hot-cache-max-size 1GB \
+    --initial-cache-blocks 256
+  ```
+- **必要 patch**：Homebrew 0.3.4 預裝 mlx-lm 0.31.2 是壞的，必須升 0.31.3，見 §9 陷阱表
+- 已驗證：1.5B Qwen2.5 cold→warm TTFT 2.82s→1.11s（−61%）
 
 ---
 
@@ -228,6 +254,9 @@ llm-cache-observation/
 | omlx Homebrew formula 0.3.5+ 都釘 `dflash-mlx@814c4a1`，但該 commit 已從 GitHub 消失 | 改裝 v0.3.4（最後一個沒 dflash-mlx 依賴的版本），`git checkout 3c0345f -- Formula/omlx.rb` 後本地 install |
 | omlx 預設 `--host 127.0.0.1` 從 minikube pod 不可達 | `omlx serve --host 0.0.0.0 --port 8001`（即使如此 omlx 也無 Prometheus `/metrics`，不能 scrape，只能 client bench） |
 | 同時跑 vllm-metal + omlx 會搶 Metal GPU + memory bandwidth | omlx 不放 brew services 自動啟動；A/B 對照組量測「**串行**」執行 — 跑完 vllm-metal 那組再跑 omlx 那組 |
+| omlx 0.3.4 + mlx-lm 0.31.2（Homebrew 預設）→ `RuntimeError: There is no Stream(gpu, 0) in current thread`，任何非平凡 prompt 都炸 | 0.31.2 是 mlx-lm regression。**手動降到 / 升到 0.31.3**：`SP=$(brew --prefix omlx)/libexec/lib/python3.11/site-packages; rm -rf $SP/mlx_lm $SP/mlx_lm-0.31.2.dist-info; $(brew --prefix omlx)/libexec/bin/pip install --no-deps mlx-lm==0.31.3` |
+| omlx 0.3.4 model dir 預設 `~/.omlx/models/`，model 必須是子目錄含 `config.json` + `*.safetensors` | symlink：`ln -s ~/models/Qwen2.5-1.5B-Instruct-mlx-q4 ~/.omlx/models/qwen2.5-1.5b`，model_id 就是 symlink 名字 |
+| vllm-metal 的 Metal worker **不支援** vLLM 的 `KVConnector` framework（包括 `SimpleCPUOffloadConnector`、`LMCacheConnectorV1`、`OffloadingConnector` 等） | 啟動帶 `--kv-transfer-config` 會 `NotImplementedError: get_kv_connector_handshake_metadata`。要做 KV 分層 cache 在 host 上跑 **omlx** 而不是 vllm-metal |
 | Wren AI v0.29.0 wren-ai-service 沒有 `/metrics` endpoint | 不要 scrape；cache 觀察靠 vllm-metal 自身的 metrics |
 | Wren AI bootstrap 直接呼叫 wren-ui 的 deployment GraphQL 會回 "No project found"（第一次安裝沒 project 是正常） | 只是初始化噪音，不影響後續使用 |
 | Wren AI v0.29.0 的 config.yaml 用 `litellm_llm` + `litellm_embedder`，把 LLM 與 Embedder 拆開設定 | LLM 指 vllm-metal `:8000/v1`，Embedder 指 Ollama `:11434/v1`；`embedding_model_dim` 必須對應 embedder 維度（nomic-embed-text=768） |
