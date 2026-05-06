@@ -24,9 +24,19 @@ data:
               engine: vllm-metal
               backend: metal
 
-      # NOTE: omlx (jundot/omlx 0.3.4) does NOT expose Prometheus /metrics.
-      # It exposes /admin/api/stats (JSON) and /v1/* OpenAI APIs only.
-      # Comparison data for omlx is collected by scripts/bench.py at the client side.
+      # NOTE: omlx itself does not expose Prometheus /metrics, but our
+      # filesystem-based exporter (exporters/omlx/exporter.py) does. It runs
+      # on the host at port 9105 and surfaces:
+      #   omlx_up, omlx_process_rss_bytes, omlx_process_uptime_seconds,
+      #   omlx_paged_ssd_cache_bytes, omlx_paged_ssd_cache_blocks,
+      #   omlx_paged_ssd_oldest_block_age_seconds, ...
+      - job_name: omlx-exporter-host
+        metrics_path: /metrics
+        static_configs:
+          - targets: ['host.minikube.internal:9105']
+            labels:
+              engine: omlx
+              backend: metal
 
       # ---- Kubernetes infrastructure ----
       # Node-level cAdvisor: container CPU / memory / network per pod.

@@ -160,6 +160,112 @@ wren-ai namespace 各 pod 記憶體（working set）：
 
 ---
 
+---
+
+## Addendum (2026-05-06 +5 hours): End-to-end Wren AI workflow with fake data
+
+After the initial A+C report, we addressed the four "Limitations / Future work"
+items in priority order:
+
+### 1. KSM 46-restart loop — FIXED
+
+Root cause was **NOT** K8s API connection issues (which we initially suspected from
+log noise). It was kubelet's default `timeoutSeconds: 1` on the KSM liveness/readiness
+probes — KSM was slow to respond when the minikube node was under LLM load and
+kubelet killed it. Fixed in `manifests/monitoring/30-kube-state-metrics.yaml` by
+relaxing probe parameters (`timeoutSeconds: 10`, `failureThreshold: 5`,
+`periodSeconds: 30`). New KSM pod has been stable with **0 restarts**.
+
+### 2. TTFT measurement now skips role-only SSE chunks — FIXED
+
+`scripts/bench.py` now starts the TTFT clock on the first non-empty `delta.content`
+chunk, not the first SSE event. Re-measurement on omlx with the long schema:
+
+| Engine | Old TTFT (first SSE) | New TTFT (first content token) |
+|---|---|---|
+| omlx (cold) | 0.007 s | **2.36 s** |
+| omlx (warm) | 0.005-0.010 s | 0.87 s |
+| vllm-metal (already correct) | — | 1.46 s |
+
+omlx cold TTFT is now realistic (2.36 s) and slightly slower than vllm-metal warm,
+which matches our intuition (omlx's cache works but is not magic).
+
+### 3. omlx paged-SSD + hot cache exporter — IMPLEMENTED
+
+Built `exporters/omlx/exporter.py` (FastAPI-free, uses `prometheus_client` +
+`psutil`). Listens on host `:9105`, scraped by Prometheus via the new
+`omlx-exporter-host` job. Exposes:
+
+| Metric | What it measures |
+|---|---|
+| `omlx_up` | 1 if omlx serve process is running |
+| `omlx_process_uptime_seconds` | seconds since omlx started |
+| `omlx_process_rss_bytes` | RSS — limited usefulness on MLX (model is mmap'd → only counts in VMS, not RSS) |
+| `omlx_process_vms_bytes` | VMS — actual indicator of model + hot cache footprint |
+| `omlx_process_cpu_percent` | activity proxy |
+| `omlx_process_open_files` | open fd count (rises with active blocks) |
+| `omlx_paged_ssd_cache_bytes` | disk usage of `~/.omlx/paged-ssd-cache/` |
+| `omlx_paged_ssd_cache_blocks` | file count (= cached block count) |
+| `omlx_paged_ssd_cache_shards_used` | how many of the 16 hash shards have at least one block |
+| `omlx_paged_ssd_oldest_block_age_seconds` | age of oldest cached block (LRU candidate) |
+| `omlx_paged_ssd_newest_block_age_seconds` | age of most recent block (recency tracker) |
+
+**Snapshot during the e2e run**: omlx_up=1, uptime ~50 min, paged-SSD cache bytes 0
+(workload entirely fit in 1 GiB hot cache, never spilled to SSD — expected for
+small-prompt benchmarks).
+
+### 4. Wren AI fake data end-to-end — IMPLEMENTED via Wren's built-in sample dataset
+
+Instead of standing up a Postgres pod with hand-crafted seed data, we used Wren AI's
+built-in `StartSampleDataset` mutation that loads the **Olist Brazilian e-commerce**
+dataset (9 tables: customers, orders, order_items, products, reviews, payments,
+sellers, geolocation, category_translation) directly into a DuckDB-backed sample
+data source. This skips the Postgres provisioning step while still exercising the
+full Wren AI pipeline:
+
+```graphql
+mutation StartSampleDataset($data: SampleDatasetInput!) {
+  startSampleDataset(data: $data)
+}
+# variables: {"data": {"name": "ECOMMERCE"}}  # also: HR, MUSIC, NBA
+```
+
+**Results captured**:
+
+- **Schema indexing finished in ~17 s**, deploy hash `f91a37d52b86f0e302421d752955d7a41f7509d1`
+- **Qdrant collections vector total: 0 → 27** (real schema embeddings via Ollama nomic-embed-text)
+- **Sidecar Layer 2 captured real Wren routes** (instead of the synthetic /health spam):
+  - `/v1/semantics-preparations` and `/v1/semantics-preparations/:id/status` (route-collapse correctly handled UUID polling)
+  - `/v1/asks` and `/v1/asks/:id/result`
+- **vllm-metal cache hit rate climbed live from 66.5% → 74.8%** as the multi-stage pipeline
+  (intent classification → schema retrieval → SQL generation → SQL correction → SQL answer)
+  reused the same schema-context prefix across LLM calls.
+
+**The first question hit a real bug**: the LLM call exceeded `--max-model-len 4096`
+(prompt 3073 + max_tokens 1024 = 4097 > 4096). Fixed by restarting vllm-metal with
+`--max-model-len 8192`. The resubmitted question progressed UNDERSTANDING → SEARCHING
+→ Ask Retrieval before encountering the runaway in #5.
+
+### 5. Operational limit discovered: minikube CPU runaway under sustained Wren load
+
+After 2-3 e2e questions, minikube node CPU pinned at 450-2500% for >5 min and
+the K8s API server became unreachable (TLS handshake timeout). This is **the
+same class of failure** as the vllm bench earlier, but worse because Wren AI's
+multi-stage pipeline keeps multiple LLM round-trips in flight simultaneously.
+
+Recovery options (none tested in this session due to time):
+1. `minikube start --cpus 6 --memory 10240` (reduces host headroom for vllm-metal)
+2. Move Wren AI off the same minikube node (separate cluster, or Docker Compose on host)
+3. Limit Wren AI's concurrent pipeline stages via `config.yaml` settings
+4. Use a faster LLM (7B+) so each pipeline call generates more usable output, requiring
+   fewer retries
+
+This is a strong argument that **observability should NOT live in the same minikube
+cluster as the workload it observes** when both are heavy. Move Prometheus to its
+own monitoring cluster or back to host Docker Compose for production use.
+
+---
+
 ## Limitations / Future work
 
 - **TTFT 量測在 streaming SSE 下不對等**：omlx 立刻送 role-only chunk 讓 TTFT 量到 ~7 ms，並非真實 prefill 時間。應改測「first content token」而非「first SSE event」。

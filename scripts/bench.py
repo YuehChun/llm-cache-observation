@@ -65,7 +65,14 @@ def fetch_metrics(base_url: str) -> dict[str, float]:
 
 def stream_request(api_base: str, model: str, system: str, user: str,
                    max_tokens: int = 256, temperature: float = 0.0) -> tuple[float, float, int]:
-    """Send a streaming chat completion. Returns (ttft_s, total_s, output_tokens)."""
+    """Send a streaming chat completion. Returns (ttft_s, total_s, output_tokens).
+
+    TTFT is the time to the **first content token** (non-empty delta.content),
+    not the first SSE event. Engines like omlx send a role-only chunk
+    immediately after request, which makes "time to first SSE event" useless
+    for cross-engine comparison. We skip role-only and finish-reason chunks
+    and only start the TTFT clock when we actually see generated content.
+    """
     payload = {
         "model": model,
         "messages": [
@@ -82,21 +89,22 @@ def stream_request(api_base: str, model: str, system: str, user: str,
     with requests.post(f"{api_base}/chat/completions", json=payload, stream=True, timeout=300) as r:
         r.raise_for_status()
         for line in r.iter_lines():
-            if not line:
+            if not line or not line.startswith(b"data: "):
                 continue
-            if line.startswith(b"data: "):
-                if ttft is None:
-                    ttft = time.perf_counter() - t0
-                payload_text = line[6:]
-                if payload_text == b"[DONE]":
-                    break
-                try:
-                    chunk = json.loads(payload_text)
-                    delta = chunk["choices"][0]["delta"].get("content") or ""
-                    if delta:
-                        output_tokens += 1  # rough: 1 SSE delta ~ 1 token
-                except (json.JSONDecodeError, KeyError):
-                    continue
+            payload_text = line[6:]
+            if payload_text == b"[DONE]":
+                break
+            try:
+                chunk = json.loads(payload_text)
+                delta = chunk["choices"][0]["delta"].get("content") or ""
+            except (json.JSONDecodeError, KeyError, IndexError):
+                continue
+            if not delta:
+                # role-only or finish-reason-only chunk — does NOT count toward TTFT
+                continue
+            if ttft is None:
+                ttft = time.perf_counter() - t0
+            output_tokens += 1  # rough: 1 SSE delta ~ 1 token
     total = time.perf_counter() - t0
     return ttft or total, total, output_tokens
 

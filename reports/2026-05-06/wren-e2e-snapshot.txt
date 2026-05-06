@@ -1,0 +1,105 @@
+=== Wren AI End-to-End Workflow Snapshot ===
+Captured during 2026-05-06 fake-data e2e test (Olist e-commerce sample dataset).
+
+## Onboarding (StartSampleDataset mutation)
+
+GraphQL mutation submitted to Wren UI's GraphQL endpoint:
+  mutation StartSampleDataset($data: SampleDatasetInput!) { startSampleDataset(data: $data) }
+  variables: {"data": {"name": "ECOMMERCE"}}
+Response: {"data":{"startSampleDataset":{"name":"ECOMMERCE"}}}
+
+## Onboarding result (from wren-ui GraphQL query OnboardingStatus)
+
+  status = WITH_SAMPLE_DATASET   (was BACKGROUND_PROCESS / NOT_STARTED initially)
+
+## wren-ui deployment lifecycle (from wren-ui logs)
+
+  03:10:12  Deploy status: INDEXING
+  03:10:14  Deploy status: INDEXING
+  03:10:17  Deploy status: INDEXING
+  03:10:20  Deploy status: INDEXING
+  03:10:24  Deploy status: INDEXING
+  03:10:29  Deploy status: FINISHED
+  Deploy hash: f91a37d52b86f0e302421d752955d7a41f7509d1
+  -> Indexing took ~17s for the 9-table Olist schema
+
+## ai-service pipeline activity (from wren-ai-service logs)
+
+  03:10:12  Project Meta Indexing pipeline is running
+  03:10:12  SQL Pairs Indexing pipeline is running
+  03:12:33  AskingTaskTracker created task a16e20a8-... (question: "Show me the top 5 customers by total order value")
+  03:12:36  Task FAILED with ContextWindowExceededError (model max 4096, request 4097)
+  03:24:04  vllm-metal restarted with --max-model-len 8192
+  03:24:??  Resubmitted question, task UNDERSTANDING -> SEARCHING
+  03:33:07  Ask Retrieval pipeline running
+  ai-service log shows: "127.0.0.1:36576 - GET /v1/asks/.../result HTTP/1.1 200 OK"
+  -> The 127.0.0.1 source confirms wren-ui calls travel via Service:5555 -> sidecar:5556 -> ai-service:localhost:5555
+
+## Sidecar route capture (Layer 2 — wren-ai sidecar) BEFORE the runaway
+
+  /health                                                 -> 50      (health-check loop from earlier showcase)
+  /v1/asks/non-existent-1...50/result                     -> 1 each  (earlier showcase variants)
+  /v1/semantics-preparations                              -> 1       (initial schema indexing)
+  /v1/semantics-preparations/:id/status                   -> 6       (poll for indexing status, route-collapse worked)
+  /v1/asks                                                -> 2       (the two asking tasks we submitted)
+  /v1/asks/:id/result                                     -> 12      (UI polling for result, route-collapse worked)
+
+  Key observation: route_label() in proxy.py correctly collapsed UUID-style query IDs
+  (>=16 chars with digits) to ":id", keeping cardinality bounded.
+  The "non-existent-1...50" series did NOT collapse because each ID was 14-15 chars (below threshold).
+
+## Qdrant (Layer 3) — embedding-based RAG
+
+  collections_total           = 6      (Wren AI created 6 collections at startup)
+  collections_vector_total    = 27     (after Olist sample dataset indexing — was 0 before)
+  rest_responses_total{PUT /collections/{name}/index}  = 24+
+                              -> embedding writes triggered by Ollama nomic-embed-text via litellm
+
+## vllm-metal (Layer 1) — real Wren AI traffic
+
+  Engine logs (engine_step output during e2e query):
+    11:32:21  Avg prompt throughput: 0.0 tok/s, Avg generation: 0.0 tok/s, Running: 0, Prefix cache hit rate: 66.5%
+    11:32:42  Avg prompt throughput: 1.5 tok/s, Avg generation: 1.6 tok/s, Running: 1, Prefix cache hit rate: 74.8%
+    11:32:52  Avg prompt throughput: 0.0 tok/s, Avg generation: 5.9 tok/s, Running: 1, Prefix cache hit rate: 74.8%
+    11:33:02  Avg prompt throughput: 0.0 tok/s, Avg generation: 2.3 tok/s, Running: 0, Prefix cache hit rate: 74.8%
+
+  Real Wren AI workflow exercised vllm-metal cache:
+  - Hit rate climbed from 66.5% to 74.8% as Wren AI's pipeline reused the same schema-context prefix
+    across pipeline stages (intent classification, sql generation, sql correction, sql answer)
+
+## Failure mode encountered: minikube CPU runaway
+
+  After ~2-3 e2e queries through Wren AI's full pipeline, minikube node CPU stayed pinned
+  450-2500% for >5 minutes without recovering. K8s API server became unreachable (TLS handshake
+  timeout). This was the same class of issue we saw earlier with vllm bench — but worse because
+  Wren AI's pipeline is more CPU-intensive (multi-stage inference + ibis-server + qdrant +
+  wren-engine all working concurrently).
+
+  Root cause hypothesis: Wren AI v0.29.0's pipeline retries / multi-step planning loop ran
+  in parallel and overwhelmed the docker-driver minikube control plane (4 CPU cores allocated).
+
+  Mitigation options:
+  1. Increase minikube --cpus from 4 to 6 (would reduce headroom for vllm-metal on host)
+  2. Tune Wren AI to be less retry-happy (config.yaml settings)
+  3. Use a 7B+ model so each LLM call is meaningful and fewer retries are triggered
+  4. Run Wren AI workflow on dedicated hardware
+
+## Final status of e2e test
+
+  - StartSampleDataset succeeded
+  - Schema indexing into Qdrant succeeded (27 vectors)
+  - First question: failed with ContextWindowExceededError (fixed by --max-model-len 8192)
+  - Second question: reached UNDERSTANDING -> SEARCHING -> Ask Retrieval before minikube ran away
+  - Task did not reach FINISHED status due to operational instability, NOT due to a logic bug
+
+## Conclusion
+
+  End-to-end Wren AI -> sidecar -> vllm-metal -> Qdrant data flow works structurally:
+  - Sidecar captures real /v1/asks routes with route-collapse
+  - Qdrant accumulates real vectors from real schema indexing
+  - vllm-metal serves real LLM calls and the cache hit rate climbs as pipeline stages
+    reuse common context
+
+  The 5-layer dashboard now has REAL Wren AI workflow data on every layer.
+  But the workflow is too heavy to run continuously on a 16 GB Apple M3 laptop with
+  minikube docker driver — for sustained workload testing, dedicated hardware needed.
