@@ -268,7 +268,21 @@ own monitoring cluster or back to host Docker Compose for production use.
 
 ## Limitations / Future work
 
-- **TTFT 量測在 streaming SSE 下不對等**：omlx 立刻送 role-only chunk 讓 TTFT 量到 ~7 ms，並非真實 prefill 時間。應改測「first content token」而非「first SSE event」。
-- **omlx hit rate 觀察缺口**：omlx paged-SSD/hot cache 沒對外暴露 metric。可寫個 cache disk usage exporter（看 `~/.omlx/paged-ssd-cache/` size 變化）作為近似。
-- **KSM 自身重啟 46 次**：Prometheus 看到 K8s API TLS handshake timeout，需 root cause（可能是 minikube docker driver 在重 LLM workload 下 control plane 抖動）。
-- **Wren AI 未跑真實 workflow**：本實驗只用「Wren-style prompt 模式」直打 vllm-metal，沒設定 demo Postgres + UI 專案。end-to-end query 需要額外 setup。
+### Resolved (見 Addendum)
+
+| 原 limitation | 狀態 | 修復點 |
+|---|---|---|
+| TTFT 量測在 SSE 下不對等（omlx 假 7ms） | ✅ 已修 | `scripts/bench.py` 跳過 role-only / finish-reason chunks；omlx cold TTFT 真實值 2.36s |
+| omlx hit rate 沒 exporter | ✅ 已建 | `exporters/omlx/exporter.py`（host :9105, 11 個 metric）+ Prometheus job `omlx-exporter-host` |
+| KSM 46 次自重啟 | ✅ 已修 | 真因是 kubelet 預設 probe `timeoutSeconds: 1`；改成 10s + failureThreshold 5 + period 30s |
+| Wren AI 沒真實 workflow | ✅ 已跑 | `StartSampleDataset` 拉 Olist 9-table dataset；Qdrant 0→27 vectors；sidecar 抓到真實 `/v1/asks` 路由；vllm hit rate 66.5%→74.8% |
+
+### Newly discovered (本次跑出來的真問題)
+
+- **minikube CPU runaway under Wren AI sustained load**：observability + workload 共一個 minikube node 在 4 CPU 配額下，Wren AI 多階段 pipeline + 多並行 LLM round-trips 會讓 node CPU 拉到 450-2500%，K8s API server TLS handshake timeout 超過 5 分鐘不回神。建議 production 把 observability cluster 與 workload cluster 分開（或把 Prometheus 移回 host Docker Compose）
+- **omlx hot cache 大小無法精準量測**：MLX 把模型 + hot cache mmap 進記憶體，所以 `process_rss_bytes` 只看到 25 MB 卻 `vms_bytes` 4.47 × 10¹¹（447 GB virtual）。RSS 不是好的 hot cache 占用 proxy。要量真正的 hot cache 占用須改 omlx source 或加 admin API session-cookie 認證後抓 `/admin/api/stats`
+- **vllm `--max-model-len 4096` 對真實 Wren AI 太緊**：Wren AI 的 schema-context system prompt + tool definitions 一輪就 ~3073 tokens，加 max_tokens 1024 立刻超過 4096。實驗時臨時改 8192，但 Qwen 1.5B Q4 跑 8K 上下文會吃掉更多 KV cache memory（17.2 GB Metal 額度只剩 ~3 GB available）。Production 應該升 7B Q4 + 4K context 或 1.5B + 16K context（2 選 1）
+- **`vllm:request_success_total` 與 histogram count 不一致**（55 vs 93）：38 個 request 沒到 success 狀態，疑為 client 流式中斷或 503 錯。需查 `bench.py` 的 streaming 早關行為
+- **`vllm:kv_block_*` sampled metrics 在預設 sample rate 0.01 下 90 reqs 全都抽不到**：要做 block 級分析得 `--kv-cache-metrics-sample 1.0`，但會增加觀察 overhead
+- **omlx 沒 SSE keep-alive，長 LLM 回應時 client 端可能斷**：實驗中 omlx 完整 90 reqs 都沒問題，但更長的 generation 場景需驗證
+- **Sidecar route_label collapse 規則對 14-15 字元 ID 失效**：`non-existent-1...50` 都變獨立 series（cardinality 50 個）。應改 collapse 規則為「任何 segment 含數字皆 → :id」或「>= 8 字元含數字 → :id」
