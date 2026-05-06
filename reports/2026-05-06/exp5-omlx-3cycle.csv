@@ -1,0 +1,91 @@
+label,cycle,idx,question,ttft_s,total_s,out_tokens
+omlx-long,0,1,Show top 5 customers by total order amount in the last 30 days.,0.0043,1.84,64
+omlx-long,0,2,List the 10 most popular products by total quantity sold.,0.0062,1.8468,66
+omlx-long,0,3,What is the average order value per month for the past year?,0.0064,2.4126,91
+omlx-long,0,4,Which suppliers have shipped the most orders?,0.0067,1.9747,65
+omlx-long,0,5,Find customers who have not placed any order in the last 90 days.,0.0062,1.3662,42
+omlx-long,0,6,Show daily revenue trend for the past 14 days.,0.007,2.3361,96
+omlx-long,0,7,What is the total inventory value grouped by category?,0.0054,1.8316,68
+omlx-long,0,8,List the top 3 sales reps by total revenue closed.,0.0068,2.3188,95
+omlx-long,0,9,Which products have the highest return rate?,0.0061,1.4068,46
+omlx-long,0,10,"Show the conversion rate from quote to order, monthly.",0.0066,2.2754,89
+omlx-long,0,11,Find duplicate customer records based on email.,0.0072,1.3004,35
+omlx-long,0,12,Calculate gross margin per product category.,0.0066,2.3051,96
+omlx-long,0,13,Which regions had the highest YoY growth?,0.0066,2.2811,93
+omlx-long,0,14,Show orders that took longer than 5 days to ship.,0.0077,1.2701,38
+omlx-long,0,15,List products with stock below reorder threshold.,0.0065,2.2272,92
+omlx-long,0,16,What is the customer lifetime value distribution?,0.007,2.4171,96
+omlx-long,0,17,Show the cohort retention by signup month.,0.018,2.6638,88
+omlx-long,0,18,Find sales reps whose performance dropped in Q4 vs Q3.,0.0079,2.2857,92
+omlx-long,0,19,Which discount campaigns drove the most incremental revenue?,0.0072,2.3657,96
+omlx-long,0,20,List orders that combine more than 3 product categories.,0.0059,2.3012,94
+omlx-long,0,21,What is the median order processing time per warehouse?,0.0073,2.3036,96
+omlx-long,0,22,Show the top 10 highest-revenue customers and their primary product category.,0.0076,1.397,44
+omlx-long,0,23,Which product pairs are most often bought together?,0.0081,2.3985,90
+omlx-long,0,24,What is the cancellation rate per payment method?,0.0075,1.5745,54
+omlx-long,0,25,Find orders shipped to a different country than the billing address.,0.0057,1.3616,44
+omlx-long,0,26,Show monthly active customers vs new customers.,0.0072,2.2822,90
+omlx-long,0,27,Which suppliers had the most quality complaints last quarter?,0.0063,2.2844,86
+omlx-long,0,28,Calculate the average days between first order and second order per customer.,0.0072,2.2963,91
+omlx-long,0,29,Find products whose price changed more than 3 times in the past year.,0.0063,2.3026,91
+omlx-long,0,30,Show revenue by sales channel for the current quarter.,0.007,2.2923,96
+omlx-long,1,31,Show top 5 customers by total order amount in the last 30 days.,0.0069,1.7578,64
+omlx-long,1,32,List the 10 most popular products by total quantity sold.,0.0069,1.7768,66
+omlx-long,1,33,What is the average order value per month for the past year?,0.0063,2.2896,91
+omlx-long,1,34,Which suppliers have shipped the most orders?,0.0057,1.8756,65
+omlx-long,1,35,Find customers who have not placed any order in the last 90 days.,0.007,1.3236,42
+omlx-long,1,36,Show daily revenue trend for the past 14 days.,0.0061,2.3046,96
+omlx-long,1,37,What is the total inventory value grouped by category?,0.0058,1.8026,68
+omlx-long,1,38,List the top 3 sales reps by total revenue closed.,0.0074,2.2757,95
+omlx-long,1,39,Which products have the highest return rate?,0.0065,1.3853,46
+omlx-long,1,40,"Show the conversion rate from quote to order, monthly.",0.0062,2.2564,89
+omlx-long,1,41,Find duplicate customer records based on email.,0.0067,1.3004,35
+omlx-long,1,42,Calculate gross margin per product category.,0.0068,2.2964,96
+omlx-long,1,43,Which regions had the highest YoY growth?,0.0073,2.2791,93
+omlx-long,1,44,Show orders that took longer than 5 days to ship.,0.0064,1.4292,38
+omlx-long,1,45,List products with stock below reorder threshold.,0.007,2.2712,92
+omlx-long,1,46,What is the customer lifetime value distribution?,0.0075,2.4273,96
+omlx-long,1,47,Show the cohort retention by signup month.,0.0054,2.3503,88
+omlx-long,1,48,Find sales reps whose performance dropped in Q4 vs Q3.,0.0065,2.3018,92
+omlx-long,1,49,Which discount campaigns drove the most incremental revenue?,0.0056,2.2635,96
+omlx-long,1,50,List orders that combine more than 3 product categories.,0.0063,2.3382,94
+omlx-long,1,51,What is the median order processing time per warehouse?,0.0078,2.3353,96
+omlx-long,1,52,Show the top 10 highest-revenue customers and their primary product category.,0.0059,1.3924,44
+omlx-long,1,53,Which product pairs are most often bought together?,0.0071,2.3394,90
+omlx-long,1,54,What is the cancellation rate per payment method?,0.006,1.5516,54
+omlx-long,1,55,Find orders shipped to a different country than the billing address.,0.0067,1.3583,44
+omlx-long,1,56,Show monthly active customers vs new customers.,0.0069,2.2728,90
+omlx-long,1,57,Which suppliers had the most quality complaints last quarter?,0.0072,2.2857,86
+omlx-long,1,58,Calculate the average days between first order and second order per customer.,0.0068,2.313,91
+omlx-long,1,59,Find products whose price changed more than 3 times in the past year.,0.0069,2.3027,91
+omlx-long,1,60,Show revenue by sales channel for the current quarter.,0.006,2.3271,96
+omlx-long,2,61,Show top 5 customers by total order amount in the last 30 days.,0.0061,1.8703,64
+omlx-long,2,62,List the 10 most popular products by total quantity sold.,0.0067,1.7875,66
+omlx-long,2,63,What is the average order value per month for the past year?,0.006,2.2785,91
+omlx-long,2,64,Which suppliers have shipped the most orders?,0.007,1.9405,65
+omlx-long,2,65,Find customers who have not placed any order in the last 90 days.,0.0052,1.3224,42
+omlx-long,2,66,Show daily revenue trend for the past 14 days.,0.0062,2.2817,96
+omlx-long,2,67,What is the total inventory value grouped by category?,0.0068,1.7899,68
+omlx-long,2,68,List the top 3 sales reps by total revenue closed.,0.01,2.2943,95
+omlx-long,2,69,Which products have the highest return rate?,0.0067,1.5785,46
+omlx-long,2,70,"Show the conversion rate from quote to order, monthly.",0.0094,2.4277,89
+omlx-long,2,71,Find duplicate customer records based on email.,0.0064,1.3625,35
+omlx-long,2,72,Calculate gross margin per product category.,0.0049,2.2883,96
+omlx-long,2,73,Which regions had the highest YoY growth?,0.0067,2.3175,93
+omlx-long,2,74,Show orders that took longer than 5 days to ship.,0.0083,1.2788,38
+omlx-long,2,75,List products with stock below reorder threshold.,0.0067,2.2193,92
+omlx-long,2,76,What is the customer lifetime value distribution?,0.0067,2.2914,96
+omlx-long,2,77,Show the cohort retention by signup month.,0.0062,2.2987,88
+omlx-long,2,78,Find sales reps whose performance dropped in Q4 vs Q3.,0.0064,2.2917,92
+omlx-long,2,79,Which discount campaigns drove the most incremental revenue?,0.0065,2.2987,96
+omlx-long,2,80,List orders that combine more than 3 product categories.,0.0059,2.277,94
+omlx-long,2,81,What is the median order processing time per warehouse?,0.0072,2.2925,96
+omlx-long,2,82,Show the top 10 highest-revenue customers and their primary product category.,0.0068,1.3997,44
+omlx-long,2,83,Which product pairs are most often bought together?,0.0056,2.2906,90
+omlx-long,2,84,What is the cancellation rate per payment method?,0.0061,1.5499,54
+omlx-long,2,85,Find orders shipped to a different country than the billing address.,0.0071,1.3582,44
+omlx-long,2,86,Show monthly active customers vs new customers.,0.0078,2.2782,90
+omlx-long,2,87,Which suppliers had the most quality complaints last quarter?,0.0066,2.2707,86
+omlx-long,2,88,Calculate the average days between first order and second order per customer.,0.0073,2.2926,91
+omlx-long,2,89,Find products whose price changed more than 3 times in the past year.,0.006,2.2679,91
+omlx-long,2,90,Show revenue by sales channel for the current quarter.,0.0057,2.2734,96

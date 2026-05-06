@@ -1,0 +1,91 @@
+label,cycle,idx,question,ttft_s,total_s,out_tokens
+vllm-metal-long,0,1,Show top 5 customers by total order amount in the last 30 days.,17.9046,63.6853,35
+vllm-metal-long,0,2,List the 10 most popular products by total quantity sold.,35.338,49.0254,19
+vllm-metal-long,0,3,What is the average order value per month for the past year?,37.9378,72.1086,33
+vllm-metal-long,0,4,Which suppliers have shipped the most orders?,21.907,40.5714,21
+vllm-metal-long,0,5,Find customers who have not placed any order in the last 90 days.,15.5359,21.1133,19
+vllm-metal-long,0,6,Show daily revenue trend for the past 14 days.,23.0077,23.0835,2
+vllm-metal-long,0,7,What is the total inventory value grouped by category?,18.3608,18.4619,2
+vllm-metal-long,0,8,List the top 3 sales reps by total revenue closed.,12.9782,22.6511,14
+vllm-metal-long,0,9,Which products have the highest return rate?,19.9168,19.9395,1
+vllm-metal-long,0,10,"Show the conversion rate from quote to order, monthly.",7.2396,19.4985,47
+vllm-metal-long,0,11,Find duplicate customer records based on email.,26.3952,27.104,2
+vllm-metal-long,0,12,Calculate gross margin per product category.,11.5156,16.6404,6
+vllm-metal-long,0,13,Which regions had the highest YoY growth?,16.7854,23.8818,21
+vllm-metal-long,0,14,Show orders that took longer than 5 days to ship.,8.147,11.7485,9
+vllm-metal-long,0,15,List products with stock below reorder threshold.,16.795,16.9839,2
+vllm-metal-long,0,16,What is the customer lifetime value distribution?,20.7223,21.0418,2
+vllm-metal-long,0,17,Show the cohort retention by signup month.,11.6255,21.7463,42
+vllm-metal-long,0,18,Find sales reps whose performance dropped in Q4 vs Q3.,24.1855,24.3765,2
+vllm-metal-long,0,19,Which discount campaigns drove the most incremental revenue?,26.4257,45.3752,3
+vllm-metal-long,0,20,List orders that combine more than 3 product categories.,40.7369,41.3448,2
+vllm-metal-long,0,21,What is the median order processing time per warehouse?,14.3991,44.0235,16
+vllm-metal-long,0,22,Show the top 10 highest-revenue customers and their primary product category.,28.2573,40.2196,14
+vllm-metal-long,0,23,Which product pairs are most often bought together?,9.6483,19.8229,35
+vllm-metal-long,0,24,What is the cancellation rate per payment method?,26.0325,26.264,2
+vllm-metal-long,0,25,Find orders shipped to a different country than the billing address.,27.2073,27.2744,2
+vllm-metal-long,0,26,Show monthly active customers vs new customers.,22.0571,22.1761,3
+vllm-metal-long,0,27,Which suppliers had the most quality complaints last quarter?,18.8791,19.9527,2
+vllm-metal-long,0,28,Calculate the average days between first order and second order per customer.,25.7418,25.8238,2
+vllm-metal-long,0,29,Find products whose price changed more than 3 times in the past year.,27.2307,27.3947,3
+vllm-metal-long,0,30,Show revenue by sales channel for the current quarter.,24.864,38.2653,36
+vllm-metal-long,1,31,Show top 5 customers by total order amount in the last 30 days.,30.4374,49.7701,64
+vllm-metal-long,1,32,List the 10 most popular products by total quantity sold.,15.3755,26.4108,55
+vllm-metal-long,1,33,What is the average order value per month for the past year?,14.6477,32.7628,65
+vllm-metal-long,1,34,Which suppliers have shipped the most orders?,13.0622,32.8571,84
+vllm-metal-long,1,35,Find customers who have not placed any order in the last 90 days.,14.6227,59.1093,22
+vllm-metal-long,1,36,Show daily revenue trend for the past 14 days.,12.902,28.8626,36
+vllm-metal-long,1,37,What is the total inventory value grouped by category?,10.4523,18.2315,46
+vllm-metal-long,1,38,List the top 3 sales reps by total revenue closed.,38.6058,68.8839,96
+vllm-metal-long,1,39,Which products have the highest return rate?,8.9675,12.9017,46
+vllm-metal-long,1,40,"Show the conversion rate from quote to order, monthly.",10.5974,32.6605,96
+vllm-metal-long,1,41,Find duplicate customer records based on email.,7.8749,16.1143,91
+vllm-metal-long,1,42,Calculate gross margin per product category.,1.3653,5.1288,57
+vllm-metal-long,1,43,Which regions had the highest YoY growth?,3.2954,12.6078,93
+vllm-metal-long,1,44,Show orders that took longer than 5 days to ship.,6.1964,9.0113,34
+vllm-metal-long,1,45,List products with stock below reorder threshold.,1.0346,3.6567,49
+vllm-metal-long,1,46,What is the customer lifetime value distribution?,0.589,2.9907,69
+vllm-metal-long,1,47,Show the cohort retention by signup month.,1.0434,6.3031,94
+vllm-metal-long,1,48,Find sales reps whose performance dropped in Q4 vs Q3.,1.0603,8.0676,95
+vllm-metal-long,1,49,Which discount campaigns drove the most incremental revenue?,1.0399,10.3576,94
+vllm-metal-long,1,50,List orders that combine more than 3 product categories.,2.584,11.8994,95
+vllm-metal-long,1,51,What is the median order processing time per warehouse?,5.9825,24.0312,82
+vllm-metal-long,1,52,Show the top 10 highest-revenue customers and their primary product category.,9.8234,30.7812,96
+vllm-metal-long,1,53,Which product pairs are most often bought together?,7.6209,23.3969,96
+vllm-metal-long,1,54,What is the cancellation rate per payment method?,2.6255,8.7172,71
+vllm-metal-long,1,55,Find orders shipped to a different country than the billing address.,3.4566,11.301,88
+vllm-metal-long,1,56,Show monthly active customers vs new customers.,1.91,8.9714,96
+vllm-metal-long,1,57,Which suppliers had the most quality complaints last quarter?,2.0043,8.4173,86
+vllm-metal-long,1,58,Calculate the average days between first order and second order per customer.,3.5687,10.6024,87
+vllm-metal-long,1,59,Find products whose price changed more than 3 times in the past year.,5.0357,13.1581,90
+vllm-metal-long,1,60,Show revenue by sales channel for the current quarter.,12.8878,36.4649,96
+vllm-metal-long,2,61,Show top 5 customers by total order amount in the last 30 days.,10.1756,17.5906,70
+vllm-metal-long,2,62,List the 10 most popular products by total quantity sold.,1.602,5.4286,55
+vllm-metal-long,2,63,What is the average order value per month for the past year?,0.8688,5.0639,66
+vllm-metal-long,2,64,Which suppliers have shipped the most orders?,1.9453,8.6784,87
+vllm-metal-long,2,65,Find customers who have not placed any order in the last 90 days.,9.31,15.2048,43
+vllm-metal-long,2,66,Show daily revenue trend for the past 14 days.,1.4458,6.1814,68
+vllm-metal-long,2,67,What is the total inventory value grouped by category?,1.8013,6.6702,66
+vllm-metal-long,2,68,List the top 3 sales reps by total revenue closed.,1.8303,9.1705,96
+vllm-metal-long,2,69,Which products have the highest return rate?,1.1402,4.3901,51
+vllm-metal-long,2,70,"Show the conversion rate from quote to order, monthly.",1.2346,7.116,96
+vllm-metal-long,2,71,Find duplicate customer records based on email.,0.7831,7.0993,93
+vllm-metal-long,2,72,Calculate gross margin per product category.,1.2441,4.7542,59
+vllm-metal-long,2,73,Which regions had the highest YoY growth?,0.6378,6.1294,96
+vllm-metal-long,2,74,Show orders that took longer than 5 days to ship.,0.8744,3.4222,36
+vllm-metal-long,2,75,List products with stock below reorder threshold.,0.5883,3.1858,49
+vllm-metal-long,2,76,What is the customer lifetime value distribution?,1.1793,6.2654,69
+vllm-metal-long,2,77,Show the cohort retention by signup month.,4.126,17.0525,95
+vllm-metal-long,2,78,Find sales reps whose performance dropped in Q4 vs Q3.,12.43,21.8445,77
+vllm-metal-long,2,79,Which discount campaigns drove the most incremental revenue?,10.4015,22.287,91
+vllm-metal-long,2,80,List orders that combine more than 3 product categories.,16.7692,25.0896,93
+vllm-metal-long,2,81,What is the median order processing time per warehouse?,7.9399,16.4381,82
+vllm-metal-long,2,82,Show the top 10 highest-revenue customers and their primary product category.,5.3953,14.5679,90
+vllm-metal-long,2,83,Which product pairs are most often bought together?,1.3779,9.0881,94
+vllm-metal-long,2,84,What is the cancellation rate per payment method?,1.1354,6.8788,69
+vllm-metal-long,2,85,Find orders shipped to a different country than the billing address.,1.0934,7.9759,88
+vllm-metal-long,2,86,Show monthly active customers vs new customers.,9.1015,14.4419,92
+vllm-metal-long,2,87,Which suppliers had the most quality complaints last quarter?,1.637,8.6602,86
+vllm-metal-long,2,88,Calculate the average days between first order and second order per customer.,1.7155,10.817,87
+vllm-metal-long,2,89,Find products whose price changed more than 3 times in the past year.,9.3522,16.0881,94
+vllm-metal-long,2,90,Show revenue by sales channel for the current quarter.,1.9759,9.6071,94

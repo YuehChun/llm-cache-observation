@@ -1,0 +1,46 @@
+=== Prometheus panel snapshot Wed May  6 10:34:41 CST 2026 ===
+
+## L1 vllm-metal (instant counters)
+  vllm:prefix_cache_hits_total                  183488
+  vllm:prefix_cache_queries_total               186704
+  vllm:prompt_tokens_total                      186704
+  vllm:prompt_tokens_cached_total               183488
+  vllm:generation_tokens_total                  7228
+  vllm:kv_cache_usage_perc                      0
+
+## L1 vllm rates (15m window)
+  hit_rate                  0
+  TTFT_p50                  NaN
+  TTFT_p95                  NaN
+  gen_tok_per_sec           0
+
+## L2 sidecar (wren-ai-service)
+  sum(wren_ai_requests_total)                   n/a
+  sum(wren_ai_inflight_requests)                0
+  sum(wren_ai_upstream_errors_total)            n/a
+  by route:
+
+## L3 qdrant
+  collections_total                             6
+  collections_vector_total                      0
+  REST endpoint counts (top):
+    PUT /collections/{name}/index -> 24
+
+## L4 cAdvisor (wren-ai ns memory MiB)
+    ibis-server -> 598 MiB
+    wren-ui -> 57 MiB
+    wren-engine -> 198 MiB
+    qdrant -> 192 MiB
+    wren-ai-service -> 358 MiB
+
+## L5 kube-state-metrics
+  pod phases:
+    Pending -> 0
+    Succeeded -> 3
+    Failed -> 1
+    Unknown -> 0
+    Running -> 16
+  pod restarts (cluster total):
+    46
+  top restarting pods:
+    monitoring/kube-state-metrics-5966976f68-rklks -> 46

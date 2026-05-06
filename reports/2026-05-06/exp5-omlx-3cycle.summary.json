@@ -1,0 +1,12 @@
+{
+  "label": "omlx-long",
+  "n": 90,
+  "overall_seconds": 183.08,
+  "ttft_p50": 0.0067,
+  "ttft_p95": 0.0079,
+  "ttft_mean": 0.0068,
+  "out_tokens_total": 6972,
+  "tokens_per_sec_avg": 38.08,
+  "metrics_delta": {},
+  "cache_hit_rate": 0.0
+}
